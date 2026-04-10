@@ -29,24 +29,39 @@ export function formatHourToClock(hour: number): string {
 
 export function signalToTitle(signal: string): string {
   const map: Record<string, string> = {
-    app_switches_per_hour: 'High App-Switching',
-    sleep_duration_min: 'Sleep Duration',
+    app_switches_per_hour:    'App-Switching',
+    sleep_duration_min:       'Sleep Duration',
     avg_session_duration_sec: 'Session Length',
-    screen_time_min: 'Screen Time',
-    screen_time_variance: 'Screen Time Variance',
-    fragmentation_score: 'Attention Fragmentation',
+    screen_time_min:          'Screen Time',
+    screen_time_variance:     'Screen Variability',
+    fragmentation_score:      'Attention Fragmentation',
   };
   return map[signal] ?? signal.replace(/_/g, ' ');
+}
+
+function zToAdverb(z: number): string {
+  const abs = Math.abs(z);
+  if (abs >= 2.5) return 'much';
+  if (abs >= 1.5) return 'noticeably';
+  return 'a bit';
 }
 
 export function describeAnomalyBody(
   signal: string,
   z: number | undefined
 ): string {
-  if (z === undefined) return 'Multiple behavioral signals shifted from your baseline.';
-  const absZ = Math.abs(z).toFixed(1);
-  if (signal.includes('sleep')) {
-    return `Your sleep duration is ${absZ} standard deviations from baseline.`;
-  }
-  return `Your ${signal.replace(/_/g, ' ')} is ${absZ}σ from baseline.`;
+  if (z === undefined) return 'Several of your habits look different from your usual patterns today.';
+  const adv = zToAdverb(z);
+  const dir = z > 0 ? 'more than' : 'less than';
+  if (signal === 'sleep_duration_min')
+    return `You slept ${adv} ${dir} usual last night — rest has a big impact on focus and mood.`;
+  if (signal === 'app_switches_per_hour')
+    return `You're switching apps ${adv} ${dir} usual — this often makes it harder to concentrate.`;
+  if (signal === 'avg_session_duration_sec')
+    return `Your focus sessions are ${adv} shorter than usual — that can be a sign of mental fatigue.`;
+  if (signal === 'screen_time_min')
+    return `Your screen time today is ${adv} ${dir} your usual amount.`;
+  if (signal === 'screen_time_variance')
+    return `Your screen habits today are ${adv} more scattered than your usual routine.`;
+  return `${signalToTitle(signal)} looks ${adv} different from your usual pattern today.`;
 }

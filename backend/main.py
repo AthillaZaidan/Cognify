@@ -47,14 +47,14 @@ CBT_TEMPLATES = {
     "app_switches_per_hour": {
         "type": "focus_reset",
         "title": "2-Minute Focus Reset",
-        "content": "Your app switching is elevated above baseline. Try this quick reset.",
+        "content": "You've been switching apps more than usual. Try this quick reset to regain focus.",
         "steps": ["Close all open apps", "3 deep breaths (4-4-6)", "Pick ONE task", "Set 25min timer"],
         "priority": "urgent",
     },
     "sleep_duration_min": {
         "type": "sleep_hygiene",
         "title": "Sleep Wind-Down",
-        "content": "Your sleep duration is below baseline. Establish a wind-down routine.",
+        "content": "You've been sleeping less than usual lately. A simple wind-down routine can help.",
         "steps": [
             "No screens 30min before bed",
             "Dim lights",
@@ -66,7 +66,7 @@ CBT_TEMPLATES = {
     "avg_session_duration_sec": {
         "type": "sustained_focus",
         "title": "Sustained Focus Session",
-        "content": "Your session duration is fragmented. Build sustained attention.",
+        "content": "Your focus sessions have been shorter than usual. Let's build that attention back up.",
         "steps": [
             "Choose one app/task",
             "Set 20min focused timer",
@@ -78,7 +78,7 @@ CBT_TEMPLATES = {
     "screen_time_min": {
         "type": "screen_break",
         "title": "Screen Break",
-        "content": "Your screen time is above baseline. Schedule regular breaks.",
+        "content": "You've been on your screen more than usual today. Regular breaks can make a real difference.",
         "steps": [
             "Every 45min, take a 10min break",
             "Stand up and stretch",
@@ -90,7 +90,7 @@ CBT_TEMPLATES = {
     "screen_time_variance": {
         "type": "routine_anchor",
         "title": "Routine Anchor Point",
-        "content": "Your screen time pattern is highly variable. Anchor your routine.",
+        "content": "Your screen habits have been scattered lately. Anchoring your routine can help you feel more in control.",
         "steps": [
             "Set 3 fixed daily times for checking phone",
             "Use app timers",

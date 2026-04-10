@@ -127,7 +127,7 @@ export default function DashboardScreen() {
               Good {greet}, {firstName}
             </Text>
             <Text style={styles.greetSub}>
-              {latestDate ? `Signals for ${latestDate} · vs your baseline` : 'Loading snapshot…'}
+              {latestDate ? `How today looks · ${latestDate}` : 'Loading your overview…'}
             </Text>
           </View>
           <View style={styles.headerRight}>
@@ -153,22 +153,24 @@ export default function DashboardScreen() {
 
         <View style={styles.metricsRow}>
           <MetricCard
-            label="Sleep Duration"
+            label="Sleep"
             value={`${sleepH.toFixed(1)}h`}
-            baseline={`Baseline: ${sleepBase.toFixed(1)}h`}
+            baseline={`Your usual: ${sleepBase.toFixed(1)}h`}
             progress={Math.min(sleepH / (sleepBase * 1.2), 1)}
           />
           <MetricCard
-            label="App Switches"
+            label="App Switching"
             value={`${sw.toFixed(1)}/hr`}
-            baseline={`Baseline: ${swBase.toFixed(1)}/hr`}
+            baseline={`Your usual: ${swBase.toFixed(1)}/hr`}
             progress={Math.min(sw / (swBase * 1.5), 1)}
           />
         </View>
 
-        <Text style={styles.sectionTitle}>Supports</Text>
+        <Text style={styles.sectionTitle}>Quick Supports</Text>
         <Text style={styles.sectionSub}>
-          {d?.active_interventions ?? 0} open in Actions · same list below
+          {d?.active_interventions
+            ? `${d.active_interventions} recovery action${d.active_interventions > 1 ? 's' : ''} waiting · tap to view`
+            : 'CBT-based tools — tap any to open Actions'}
         </Text>
 
         <View style={styles.supportList}>

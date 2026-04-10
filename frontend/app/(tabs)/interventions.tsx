@@ -66,13 +66,18 @@ export default function InterventionsScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} colors={[Colors.accent]} />}
     >
       <View style={styles.pad}>
-        <Text style={styles.title}>Actions</Text>
-        <Text style={styles.sub}>{active.length} open</Text>
+        <Text style={styles.title}>Recovery Actions</Text>
+        <Text style={styles.sub}>
+          {active.length > 0
+            ? `${active.length} active · evidence-based CBT techniques`
+            : 'All caught up'}
+        </Text>
 
         {active.length === 0 ? (
           <View style={styles.empty}>
-            <Feather name="check-circle" size={40} color={Colors.textMuted} style={styles.emptyIcon} />
-            <Text style={styles.emptyText}>No open items. Check completed below if needed.</Text>
+            <Feather name="check-circle" size={44} color={Colors.success} style={styles.emptyIcon} />
+            <Text style={styles.emptyTitle}>You're on track</Text>
+            <Text style={styles.emptyText}>No open actions. Your behavioral patterns look stable.</Text>
           </View>
         ) : (
           active.map((i) => (
@@ -105,11 +110,12 @@ export default function InterventionsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   pad: { paddingHorizontal: 16 },
-  title: { fontSize: 26, fontFamily: Font.bold, color: Colors.text, letterSpacing: -0.4 },
-  sub: { fontSize: 14, fontFamily: Font.regular, color: Colors.textMuted, marginBottom: 16 },
-  empty: { alignItems: 'center', padding: 32 },
-  emptyIcon: { marginBottom: 12, opacity: 0.7 },
-  emptyText: { fontSize: 15, fontFamily: Font.regular, color: Colors.textMuted, textAlign: 'center', lineHeight: 22 },
+  title: { fontSize: 26, fontFamily: Font.bold, color: Colors.text, letterSpacing: -0.5, marginBottom: 4 },
+  sub: { fontSize: 13, fontFamily: Font.regular, color: Colors.textMuted, marginBottom: 20, lineHeight: 18 },
+  empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24 },
+  emptyIcon: { marginBottom: 14 },
+  emptyTitle: { fontSize: 17, fontFamily: Font.bold, color: Colors.text, marginBottom: 6 },
+  emptyText: { fontSize: 14, fontFamily: Font.regular, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 },
   toggle: { marginVertical: 12, alignSelf: 'flex-start' },
   toggleText: { color: Colors.accent, fontFamily: Font.semibold, fontSize: 14 },
 });

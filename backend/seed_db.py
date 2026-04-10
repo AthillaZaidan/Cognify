@@ -10,6 +10,7 @@ import sys
 import json
 import joblib
 import datetime
+from dataclasses import dataclass
 from math import exp
 
 import numpy as np
@@ -92,12 +93,14 @@ def recreate_tables(cur):
 # ---------------------------------------------------------------------------
 
 PATIENTS = [
-    # (email, name, age, gender, severity)
-    ("patient_000@cognify.demo", "Alex Santosa",  24, "Male",   "moderate"),
-    ("patient_001@cognify.demo", "Budi Pratama",  31, "Male",   "severe"),
-    ("patient_002@cognify.demo", "Citra Dewi",    28, "Female", "mild"),
-    ("patient_003@cognify.demo", "Dian Kusuma",   22, "Female", "moderate"),
-    ("patient_004@cognify.demo", "Eko Saputra",   35, "Male",   "severe"),
+    # (email, name, age, gender, severity, onset_day, total_days)
+    # onset_day: day deterioration begins (99 = never relapse within window)
+    # total_days: how many days of monitoring data to generate (controls "last active" date)
+    ("patient_000@cognify.demo", "Alex Santosa",  24, "Male",   "moderate", 18, 30),  # main demo: attention_needed by day 30
+    ("patient_001@cognify.demo", "Budi Pratama",  31, "Male",   "severe",   14, 27),  # attention_needed, detected earlier
+    ("patient_002@cognify.demo", "Citra Dewi",    28, "Female", "mild",     99, 20),  # STABLE: no relapse in window
+    ("patient_003@cognify.demo", "Dian Kusuma",   22, "Female", "moderate", 20, 26),  # attention_needed, later onset
+    ("patient_004@cognify.demo", "Eko Saputra",   35, "Male",   "severe",   17, 22),  # mild_drift / early attention
 ]
 
 PSYCHOLOGIST = ("psych_000@cognify.demo", "Dr. Kartika Sari", 42, "Female")
@@ -108,7 +111,7 @@ def insert_users(cur):
 
     # Insert 5 patients first (ids 1-5 via SERIAL)
     patient_ids = []
-    for email, name, age, gender, severity in PATIENTS:
+    for email, name, age, gender, severity, _onset, _total in PATIENTS:
         cur.execute(
             """
             INSERT INTO users (email, name, role, age, gender, severity)
@@ -148,11 +151,20 @@ def insert_users(cur):
 
 START_DATE = datetime.date(2024, 1, 1)
 TOTAL_DAYS  = 30
-BASELINE_DAYS = 21  # days 1-21 = baseline, 22-30 = deterioration
 
 # Sigmoid deterioration parameters
-K          = 1.69
-INFLECTION = 26  # day 26 is the inflection point
+K                   = 1.69
+INFLECTION_OFFSET   = 5  # inflection is onset_day + 5 (mirrors notebook: 26 - 21 = 5)
+
+
+@dataclass
+class PatientProfile:
+    user_id:         int
+    onset_day:       int    # day deterioration begins (99 = stable, never relapses in window)
+    total_days:      int    # how many days of data to generate for this patient
+    sleep_offset:    float  # hours
+    activity_offset: float  # multiplier
+    switch_offset:   float  # additive switches/hr
 
 # Signal specs — values taken directly from notebook cell 2 DEFAULT_PARAMS / gen_* functions
 # (baseline_mean, deterioration_delta, noise_std)
@@ -178,8 +190,9 @@ SIGNAL_SPECS = {
 }
 
 
-def deterioration_factor(day: int) -> float:
-    return 1.0 / (1.0 + exp(-K * (day - INFLECTION)))
+def deterioration_factor(day: int, onset_day: int) -> float:
+    inflection = onset_day + INFLECTION_OFFSET
+    return 1.0 / (1.0 + exp(-K * (day - inflection)))
 
 
 def _gen_fragmentation(session_sec: float, switches: float) -> float:
@@ -196,32 +209,52 @@ def _gen_notif_response(f: float) -> float:
 
 
 def generate_behavioral_data(cur, patient_ids: list):
-    print("Generating behavioral_data (30 days × 5 patients) …")
+    print("Generating behavioral_data (variable days per patient) …")
 
     all_rows: dict[tuple, dict] = {}
+    profiles: dict[int, PatientProfile] = {}
+
+    # Build onset_day + total_days lookup from PATIENTS config (order matches patient_ids)
+    patient_config = {
+        uid: (onset, total)
+        for uid, (_, _, _, _, _, onset, total) in zip(patient_ids, PATIENTS)
+    }
 
     for user_id in patient_ids:
+        onset_day, total_days = patient_config[user_id]
         print(f"  Patient id={user_id} …", end=" ", flush=True)
 
-        # Per-patient offsets matching notebook PatientProfile
-        sleep_offset    = np.random.normal(0, 0.4)   # hours — same as notebook
-        activity_offset = np.random.normal(1.0, 0.15)  # multiplier for screen/session
-        switch_offset   = np.random.normal(0, 0.8)   # additive switches/hr
+        # Per-patient offsets — still random for realistic variation
+        sleep_offset    = np.random.normal(0, 0.4)
+        activity_offset = np.random.normal(1.0, 0.15)
+        switch_offset   = np.random.normal(0, 0.8)
 
-        for day in range(1, TOTAL_DAYS + 1):
+        profile = PatientProfile(
+            user_id=user_id,
+            onset_day=onset_day,
+            total_days=total_days,
+            sleep_offset=sleep_offset,
+            activity_offset=activity_offset,
+            switch_offset=switch_offset,
+        )
+        profiles[user_id] = profile
+        stable_label = " (STABLE)" if onset_day > total_days else ""
+        print(f"onset_day={onset_day} total_days={total_days}{stable_label}", end=" ", flush=True)
+
+        for day in range(1, total_days + 1):
             date   = START_DATE + datetime.timedelta(days=day - 1)
-            period = "baseline" if day <= BASELINE_DAYS else "deterioration"
-            f      = deterioration_factor(day)
+            period = "baseline" if day < onset_day else "deterioration"
+            f      = deterioration_factor(day, onset_day)
 
             p = SIGNAL_SPECS
 
             # sleep (hours→min, clip [180, 630]) — notebook gen_sleep_duration
-            b_sleep = p["sleep_duration_min"][0] + sleep_offset * 60
+            b_sleep = p["sleep_duration_min"][0] + profile.sleep_offset * 60
             d_sleep = b_sleep + p["sleep_duration_min"][1]
             sleep   = float(np.clip(b_sleep + f * (d_sleep - b_sleep) + np.random.normal(0, p["sleep_duration_min"][2]), 180, 630))
 
             # sleep onset (mod 24) — notebook gen_sleep_onset
-            b_onset = p["sleep_onset_hour"][0] + sleep_offset * 0.3
+            b_onset = p["sleep_onset_hour"][0] + profile.sleep_offset * 0.3
             d_onset = b_onset + p["sleep_onset_hour"][1]
             onset   = (b_onset + f * (d_onset - b_onset) + np.random.normal(0, p["sleep_onset_hour"][2])) % 24
 
@@ -231,7 +264,7 @@ def generate_behavioral_data(cur, patient_ids: list):
             wake   = float(np.clip(b_wake + f * (d_wake - b_wake) + np.random.normal(0, p["wake_hour"][2]), 5.0, 11.0))
 
             # screen time (clip [60, 720]) — notebook gen_screen_time
-            b_sc = p["screen_time_min"][0] * activity_offset
+            b_sc = p["screen_time_min"][0] * profile.activity_offset
             d_sc = b_sc + p["screen_time_min"][1]
             sc   = float(np.clip(b_sc + f * (d_sc - b_sc) + np.random.normal(0, p["screen_time_min"][2]), 60, 720))
 
@@ -241,12 +274,12 @@ def generate_behavioral_data(cur, patient_ids: list):
             var   = float(np.clip(b_var + f * (d_var - b_var) + np.random.normal(0, p["screen_time_variance"][2]), 0.02, 0.80))
 
             # app switches (clip [0.1, 25]) — notebook gen_app_switches
-            b_sw = max(0.5, p["app_switches_per_hour"][0] + switch_offset)
+            b_sw = max(0.5, p["app_switches_per_hour"][0] + profile.switch_offset)
             d_sw = b_sw + p["app_switches_per_hour"][1]
             sw   = float(np.clip(b_sw + f * (d_sw - b_sw) + np.random.normal(0, p["app_switches_per_hour"][2]), 0.1, 25.0))
 
             # session duration (clip [30, 600]) — notebook gen_session_duration
-            b_sess = p["avg_session_duration_sec"][0] * activity_offset
+            b_sess = p["avg_session_duration_sec"][0] * profile.activity_offset
             d_sess = b_sess + p["avg_session_duration_sec"][1]
             sess   = float(np.clip(b_sess + f * (d_sess - b_sess) + np.random.normal(0, p["avg_session_duration_sec"][2]), 30, 600))
 
@@ -308,7 +341,7 @@ def generate_behavioral_data(cur, patient_ids: list):
 
         print("done")
 
-    return all_rows
+    return all_rows, profiles
 
 # ---------------------------------------------------------------------------
 # Step 4: Compute baselines from days 1-21
@@ -323,14 +356,17 @@ BASELINE_SIGNALS = [
 ]
 
 
-def compute_baselines(cur, patient_ids: list, all_rows: dict) -> dict:
-    print("Computing baselines (days 1-21) …")
+def compute_baselines(cur, patient_ids: list, all_rows: dict, profiles: dict) -> dict:
+    print("Computing baselines (days 1 to onset_day-1, variable per patient) …")
     baselines: dict[int, dict] = {}
 
     for user_id in patient_ids:
+        p       = profiles[user_id]
+        # For stable patients (onset > total_days), use all days as baseline
+        baseline_end = min(p.onset_day, p.total_days + 1)
         metrics = {}
         for sig in BASELINE_SIGNALS:
-            values = [all_rows[(user_id, d)][sig] for d in range(1, BASELINE_DAYS + 1)]
+            values = [all_rows[(user_id, d)][sig] for d in range(1, baseline_end)]
             arr = np.array(values, dtype=float)
             metrics[sig] = {"mean": float(arr.mean()), "std": float(arr.std(ddof=1))}
 
@@ -339,7 +375,8 @@ def compute_baselines(cur, patient_ids: list, all_rows: dict) -> dict:
             (user_id, json.dumps(metrics)),
         )
         baselines[user_id] = metrics
-        print(f"  Baseline for user_id={user_id}: sleep_mean={metrics['sleep_duration_min']['mean']:.1f}")
+        label = "all days (stable)" if p.onset_day > p.total_days else f"days 1-{p.onset_day - 1}"
+        print(f"  Baseline for user_id={user_id} ({label}): sleep_mean={metrics['sleep_duration_min']['mean']:.1f}")
 
     return baselines
 
@@ -400,18 +437,24 @@ def classify_risk(wcs: float, flagged: int, wcs_slope_3d: float = 0.0) -> tuple:
     return risk, severity
 
 
-def run_ml_pipeline(cur, patient_ids: list, all_rows: dict, baselines: dict) -> dict:
-    """Insert anomaly_logs for days 22-30; return latest log per user."""
-    print("Running ML pipeline (days 22-30) …")
+def run_ml_pipeline(cur, patient_ids: list, all_rows: dict, baselines: dict, profiles: dict) -> dict:
+    """Insert anomaly_logs for deterioration days (onset_day to TOTAL_DAYS); return latest log per user."""
+    print("Running ML pipeline (deterioration days, variable onset per patient) …")
 
     latest_logs: dict[int, dict] = {}  # user_id → last anomaly_log dict
 
     for user_id in patient_ids:
-        print(f"  Patient id={user_id} …")
+        p         = profiles[user_id]
+        onset_day = p.onset_day
+        total_days = p.total_days
+        if onset_day > total_days:
+            print(f"  Patient id={user_id}: STABLE — no deterioration in {total_days}-day window, skipping ML pipeline")
+            continue
+        print(f"  Patient id={user_id} (onset_day={onset_day}, total_days={total_days}) …")
         baseline = baselines[user_id]
         wcs_history: list[float] = []
 
-        for day in range(22, TOTAL_DAYS + 1):
+        for day in range(onset_day, total_days + 1):
             row = all_rows[(user_id, day)]
             date = row["date"]
 
@@ -516,35 +559,35 @@ CBT_TEMPLATES = {
     "app_switches_per_hour": {
         "type":     "focus_reset",
         "title":    "2-Minute Focus Reset",
-        "content":  "Your app switching is elevated above baseline. Try this quick reset.",
+        "content":  "You've been switching apps more than usual. Try this quick reset to regain focus.",
         "steps":    ["Close all open apps", "3 deep breaths (4-4-6)", "Pick ONE task", "Set 25min timer"],
         "priority": "urgent",
     },
     "sleep_duration_min": {
         "type":     "sleep_hygiene",
         "title":    "Sleep Wind-Down",
-        "content":  "Your sleep duration is below baseline. Establish a wind-down routine.",
+        "content":  "You've been sleeping less than usual lately. A simple wind-down routine can help.",
         "steps":    ["No screens 30min before bed", "Dim lights", "Read or meditate", "Set consistent wake time"],
         "priority": "high",
     },
     "avg_session_duration_sec": {
         "type":     "sustained_focus",
         "title":    "Sustained Focus Session",
-        "content":  "Your session duration is fragmented. Build sustained attention.",
+        "content":  "Your focus sessions have been shorter than usual. Let's build that attention back up.",
         "steps":    ["Choose one app/task", "Set 20min focused timer", "No switching until done", "Take 5min break"],
         "priority": "medium",
     },
     "screen_time_min": {
         "type":     "screen_break",
         "title":    "Screen Break",
-        "content":  "Your screen time is above baseline. Schedule regular breaks.",
+        "content":  "You've been on your screen more than usual today. Regular breaks can make a real difference.",
         "steps":    ["Every 45min, take a 10min break", "Stand up and stretch", "Look at something far away", "Drink water"],
         "priority": "medium",
     },
     "screen_time_variance": {
         "type":     "routine_anchor",
         "title":    "Routine Anchor Point",
-        "content":  "Your screen time pattern is highly variable. Anchor your routine.",
+        "content":  "Your screen habits have been scattered lately. Anchoring your routine can help you feel more in control.",
         "steps":    ["Set 3 fixed daily times for checking phone", "Use app timers", "Batch notifications", "Morning routine without phone"],
         "priority": "low",
     },
@@ -574,6 +617,9 @@ def insert_interventions(cur, patient_ids: list, latest_logs: dict):
     completed_at_dt   = datetime.datetime(2024, 1, 25, 10, 30, 0)
 
     for user_id in patient_ids:
+        if user_id not in latest_logs:
+            print(f"  Patient id={user_id}: stable — no interventions needed")
+            continue
         log = latest_logs[user_id]
         z_scores = log["z_scores"]
 
@@ -634,6 +680,8 @@ def insert_alerts(cur, patient_ids: list, latest_logs: dict, psych_id: int):
 
     alert_count = 0
     for user_id in patient_ids:
+        if user_id not in latest_logs:
+            continue  # stable patient, no alerts
         log = latest_logs[user_id]
         if log["risk_level"] != "attention_needed":
             continue
@@ -718,15 +766,15 @@ def main():
         conn.commit()
 
         # Step 3
-        all_rows = generate_behavioral_data(cur, patient_ids)
+        all_rows, profiles = generate_behavioral_data(cur, patient_ids)
         conn.commit()
 
         # Step 4
-        baselines = compute_baselines(cur, patient_ids, all_rows)
+        baselines = compute_baselines(cur, patient_ids, all_rows, profiles)
         conn.commit()
 
         # Step 5
-        latest_logs = run_ml_pipeline(cur, patient_ids, all_rows, baselines)
+        latest_logs = run_ml_pipeline(cur, patient_ids, all_rows, baselines, profiles)
         conn.commit()
 
         # Step 6
@@ -740,9 +788,14 @@ def main():
         print("=" * 60)
         print("Seeding complete!")
         print(f"  Users:             {len(patient_ids) + 1}  (5 patients + 1 psychologist)")
-        print(f"  Behavioral rows:   {len(patient_ids) * TOTAL_DAYS}")
+        total_rows = sum(profiles[uid].total_days for uid in patient_ids)
+        print(f"  Behavioral rows:   {total_rows} (variable per patient)")
         print(f"  Baselines:         {len(patient_ids)}")
-        print(f"  Anomaly logs:      {len(patient_ids) * (TOTAL_DAYS - BASELINE_DAYS)}")
+        anomaly_log_count = sum(
+            max(0, profiles[uid].total_days - profiles[uid].onset_day + 1)
+            for uid in patient_ids
+        )
+        print(f"  Anomaly logs:      {anomaly_log_count} (stable patients excluded)")
         print(f"  Interventions:     {len(patient_ids) * 2}")
         print("=" * 60)
 

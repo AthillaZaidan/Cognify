@@ -61,8 +61,8 @@ export default function DigitalHabitsScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} colors={[Colors.accent]} />}
     >
       <View style={styles.pad}>
-        <Text style={styles.title}>Digital habits</Text>
-        <Text style={styles.sub}>Screen-on time, switching, fragmentation</Text>
+        <Text style={styles.title}>My Digital Habits</Text>
+        <Text style={styles.sub}>How you use your phone — screen time, focus, and switching patterns</Text>
 
         <Text style={styles.cardTitle}>Screen Time This Week</Text>
         <View style={styles.card}>
@@ -72,27 +72,27 @@ export default function DigitalHabitsScreen() {
         <Text style={styles.cardTitle}>Metrics</Text>
         <View style={styles.grid}>
           <MetricCard
-            label="App Switches/hr"
+            label="App Switching"
             value={switches.toFixed(1)}
-            baseline="Baseline: 6.0/hr"
+            baseline="Your usual: 6.0/hr"
             status={switchStatus}
           />
           <MetricCard
-            label="Avg Session"
+            label="Focus Time"
             value={`${sessMin}m`}
-            baseline="Baseline: 2.0m"
+            baseline="Your usual: 2.0m"
             status={sessionStatus}
           />
           <MetricCard
-            label="Fragmentation"
+            label="Focus Rhythm"
             value={frag.toFixed(2)}
-            baseline="Baseline: 0.35"
+            baseline="Your usual: 0.35"
             status={fragStatus}
           />
           <MetricCard
-            label="Notif Response"
+            label="Reply Speed"
             value={`${notif}s`}
-            baseline="Context only"
+            baseline="For context"
             status="Info"
           />
         </View>
