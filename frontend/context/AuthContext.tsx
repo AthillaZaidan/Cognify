@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import type { LoginResponse } from '../types/api';
+import { saveAuth, loadAuth } from '../utils/authStorage';
 
 export interface AuthState {
   user_id: number;
@@ -9,6 +10,7 @@ export interface AuthState {
 
 const AuthContext = createContext<{
   auth: AuthState | null;
+  ready: boolean;
   setAuth: (a: AuthState | null) => void;
   signOut: () => void;
 } | null>(null);
@@ -22,12 +24,29 @@ export function authFromLogin(login: LoginResponse): AuthState {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [auth, setAuth] = useState<AuthState | null>(null);
-  const signOut = useCallback(() => setAuth(null), []);
+  const [auth, setAuthState] = useState<AuthState | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    loadAuth().then((stored) => {
+      if (stored) setAuthState(stored);
+      setReady(true);
+    });
+  }, []);
+
+  const setAuth = useCallback((a: AuthState | null) => {
+    setAuthState(a);
+    void saveAuth(a);
+  }, []);
+
+  const signOut = useCallback(() => {
+    setAuthState(null);
+    void saveAuth(null);
+  }, []);
 
   const value = useMemo(
-    () => ({ auth, setAuth, signOut }),
-    [auth, signOut]
+    () => ({ auth, ready, setAuth, signOut }),
+    [auth, ready, setAuth, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

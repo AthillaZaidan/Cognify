@@ -19,6 +19,7 @@ import { Font } from '../../constants/typography';
 import { RiskBadge } from '../../components/RiskBadge';
 import { AnomalyCard } from '../../components/AnomalyCard';
 import { MetricCard } from '../../components/MetricCard';
+
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const { auth, signOut } = useAuth();
@@ -56,7 +57,9 @@ export default function DashboardScreen() {
     void load();
   }, [load]);
 
-  if (!auth) return null;
+  if (!auth) {
+    return null;
+  }
 
   if (auth.role === 'psychologist') {
     return (
@@ -81,7 +84,7 @@ export default function DashboardScreen() {
         <Text style={styles.hint}>Open Patients for the full roster and alert queue.</Text>
         <Pressable
           style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}
-          onPress={() => { signOut(); router.replace('/'); }}
+          onPress={signOut}
         >
           <Feather name="log-out" size={16} color={Colors.textMuted} />
           <Text style={styles.signOutText}>Switch account</Text>
@@ -93,18 +96,16 @@ export default function DashboardScreen() {
   const d = data;
   const firstName = auth.name.split(' ')[0];
   const hour = new Date().getHours();
-  const greet =
-    hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening';
+  const greet = hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening';
   const latestDate = d?.latest_data?.date;
   const risk = d?.latest_anomaly?.risk_level ?? 'stable';
-  const showAnomaly =
-    d?.latest_anomaly != null && d.latest_anomaly.risk_level !== 'stable';
+  const showAnomaly = d?.latest_anomaly != null && d.latest_anomaly.risk_level !== 'stable';
 
-  const sleepH = d ? d.latest_data.sleep_duration_min / 60 : 0;
+  const sleepH = d?.latest_data ? d.latest_data.sleep_duration_min / 60 : 0;
   const sleepBase = d?.baseline.sleep_duration_min?.mean
     ? d.baseline.sleep_duration_min.mean / 60
     : 6.65;
-  const sw = d?.latest_data.app_switches_per_hour ?? 0;
+  const sw = d?.latest_data?.app_switches_per_hour ?? 0;
   const swBase = d?.baseline.app_switches_per_hour?.mean ?? 6;
 
   return (
@@ -129,7 +130,16 @@ export default function DashboardScreen() {
               {latestDate ? `Signals for ${latestDate} · vs your baseline` : 'Loading snapshot…'}
             </Text>
           </View>
-          <RiskBadge level={risk} />
+          <View style={styles.headerRight}>
+            <Pressable
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.signOutIcon, pressed && { opacity: 0.75 }]}
+              onPress={signOut}
+            >
+              <Feather name="log-out" size={18} color={Colors.onPrimary} />
+            </Pressable>
+            <RiskBadge level={risk} />
+          </View>
         </View>
       </View>
 
@@ -197,7 +207,7 @@ export default function DashboardScreen() {
 
         <Pressable
           style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}
-          onPress={() => { signOut(); router.replace('/'); }}
+          onPress={signOut}
         >
           <Feather name="log-out" size={16} color={Colors.textMuted} />
           <Text style={styles.signOutText}>Switch account</Text>
@@ -218,6 +228,17 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 20,
   },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  headerRight: { alignItems: 'flex-end', gap: 10 },
+  signOutIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
   greet: { color: Colors.onPrimary, fontSize: 22, fontFamily: Font.bold, letterSpacing: -0.3 },
   greetSub: { color: Colors.onPrimaryMuted, marginTop: 6, fontSize: 14, fontFamily: Font.regular, lineHeight: 20 },
   body: { padding: 16 },

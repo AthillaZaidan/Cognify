@@ -11,10 +11,38 @@ import {
   PlusJakartaSans_800ExtraBold,
 } from '@expo-google-fonts/plus-jakarta-sans';
 import * as SplashScreen from 'expo-splash-screen';
-import { AuthProvider } from '../context/AuthContext';
+import { AuthProvider, useAuth } from '../context/AuthContext';
 import { Colors } from '../constants/colors';
+import LoginScreen from '../components/LoginScreen';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+/**
+ * Renders the correct UI based on auth state — no router.replace, no Redirect,
+ * no loops. The Stack only mounts when the user is authenticated, so every
+ * screen inside it can assume auth is present.
+ *
+ *   not ready  →  boot spinner
+ *   ready, no auth  →  <LoginScreen> (rendered directly, outside the Stack)
+ *   ready, auth set  →  <Stack> starting at app/index.tsx → redirects to /(tabs)
+ */
+function RootApp() {
+  const { auth, ready } = useAuth();
+
+  if (!ready) {
+    return (
+      <View style={styles.boot}>
+        <ActivityIndicator size="large" color={Colors.accent} />
+      </View>
+    );
+  }
+
+  if (!auth) {
+    return <LoginScreen />;
+  }
+
+  return <Stack screenOptions={{ headerShown: false }} />;
+}
 
 export default function RootLayout() {
   const [loaded, err] = useFonts({
@@ -41,7 +69,7 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <Stack screenOptions={{ headerShown: false }} />
+      <RootApp />
     </AuthProvider>
   );
 }
