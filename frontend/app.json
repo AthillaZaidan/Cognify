@@ -14,7 +14,11 @@
       "backgroundColor": "#F7F8FC"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jsndwrd.cognify",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,17 +26,23 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.jsndwrd.cognify"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "extra": {
-      "apiUrl": "http://192.168.1.100:8000"
+      "apiUrl": "http://localhost:8000",
+      "router": {},
+      "eas": {
+        "projectId": "03d7bfb3-6584-4b61-9c8d-9cc2b76928f7"
+      }
     }
   }
 }
