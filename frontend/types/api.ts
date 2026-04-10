@@ -1,6 +1,7 @@
 // --- Auth ---
 export interface LoginRequest {
   email: string;
+  password: string;
 }
 export interface LoginResponse {
   user_id: number;
@@ -48,8 +49,8 @@ export interface TrendDay {
   day?: number;
   period?: string;
   sleep_duration_min: number;
-  sleep_onset_hour: number;
-  wake_hour: number;
+  sleep_onset_hour: number | null;
+  wake_hour: number | null;
   screen_time_min: number;
   screen_time_variance: number;
   app_switches_per_hour: number;
@@ -61,7 +62,7 @@ export interface TrendDay {
 
 export interface DashboardResponse {
   user: UserInfo;
-  latest_data: TrendDay;
+  latest_data: TrendDay | null;
   baseline: BaselineMetrics;
   latest_anomaly: AnomalySnapshot | null;
   active_interventions: number;

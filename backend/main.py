@@ -137,6 +137,7 @@ def serialize_row(row: dict) -> dict:
 
 class LoginRequest(BaseModel):
     email: str
+    password: str
 
 
 class BehavioralLogRequest(BaseModel):
@@ -179,6 +180,9 @@ def health():
 
 @app.post("/login")
 def login(body: LoginRequest):
+    demo_pw = os.getenv("DEMO_PASSWORD", "cognify-demo")
+    if body.password != demo_pw:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     conn = get_db()
     try:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:

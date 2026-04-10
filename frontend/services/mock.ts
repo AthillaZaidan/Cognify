@@ -39,10 +39,16 @@ const LATEST = TRENDS_7D[TRENDS_7D.length - 1];
 
 export const MOCK = {
   login(email: string): LoginResponse {
-    if (email.startsWith('psych')) {
-      return { user_id: 99, name: 'Dr. Kartika', role: 'psychologist' };
-    }
-    return { user_id: 1, name: 'Alex Santosa', role: 'patient' };
+    // Mirror seed_db.py exactly so mock matches DB accounts
+    const accounts: Record<string, LoginResponse> = {
+      'patient_000@cognify.demo': { user_id: 1, name: 'Alex Santosa',    role: 'patient'       },
+      'patient_001@cognify.demo': { user_id: 2, name: 'Budi Pratama',    role: 'patient'       },
+      'patient_002@cognify.demo': { user_id: 3, name: 'Citra Dewi',      role: 'patient'       },
+      'patient_003@cognify.demo': { user_id: 4, name: 'Dian Kusuma',     role: 'patient'       },
+      'patient_004@cognify.demo': { user_id: 5, name: 'Eko Saputra',     role: 'patient'       },
+      'psych_000@cognify.demo':   { user_id: 6, name: 'Dr. Kartika Sari', role: 'psychologist' },
+    };
+    return accounts[email] ?? { user_id: 1, name: 'Alex Santosa', role: 'patient' };
   },
 
   dashboard(): DashboardResponse {

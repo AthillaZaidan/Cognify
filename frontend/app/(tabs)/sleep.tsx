@@ -40,8 +40,10 @@ export default function SleepScreen() {
   const hours = trends.map((d) => d.sleep_duration_min / 60);
   const labels = trends.map((d) => dayLabel(d.date));
   const avgSleepH = trends.length ? mean(trends.map((d) => d.sleep_duration_min)) / 60 : 0;
-  const avgOnset = trends.length ? mean(trends.map((d) => d.sleep_onset_hour)) : 0;
-  const avgWake = trends.length ? mean(trends.map((d) => d.wake_hour)) : 0;
+  const onsetHours = trends.map((d) => d.sleep_onset_hour).filter((v): v is number => v != null);
+  const wakeHours = trends.map((d) => d.wake_hour).filter((v): v is number => v != null);
+  const avgOnset = onsetHours.length ? mean(onsetHours) : 0;
+  const avgWake = wakeHours.length ? mean(wakeHours) : 0;
   const durStd = trends.length ? std(trends.map((d) => d.sleep_duration_min)) : 0;
   const consistency =
     durStd < 30 ? 'Consistent' : durStd <= 60 ? 'Variable' : 'Irregular';
@@ -73,11 +75,15 @@ export default function SleepScreen() {
           <Text style={styles.cardTitle}>Sleep Schedule</Text>
           <View style={styles.row}>
             <Feather name="clock" size={18} color={Colors.accent} />
-            <Text style={styles.rowText}>Average Bedtime: {formatHourToClock(avgOnset)}</Text>
+            <Text style={styles.rowText}>
+              Average Bedtime: {onsetHours.length ? formatHourToClock(avgOnset) : '—'}
+            </Text>
           </View>
           <View style={styles.row}>
             <Feather name="sunrise" size={18} color={Colors.accent} />
-            <Text style={styles.rowText}>Average Wake: {formatHourToClock(avgWake)}</Text>
+            <Text style={styles.rowText}>
+              Average Wake: {wakeHours.length ? formatHourToClock(avgWake) : '—'}
+            </Text>
           </View>
         </View>
 
@@ -114,8 +120,9 @@ export default function SleepScreen() {
                 <View style={[styles.nightFill, { width: `${pct}%`, backgroundColor: color }]} />
               </View>
               <Text style={styles.nightMeta}>
-                {(mins / 60).toFixed(1)}h · {formatHourToClock(d.sleep_onset_hour)} →{' '}
-                {formatHourToClock(d.wake_hour)}
+                {(mins / 60).toFixed(1)}h ·{' '}
+                {d.sleep_onset_hour != null ? formatHourToClock(d.sleep_onset_hour) : '—'} →{' '}
+                {d.wake_hour != null ? formatHourToClock(d.wake_hour) : '—'}
               </Text>
             </View>
           );
