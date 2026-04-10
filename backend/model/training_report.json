@@ -1,0 +1,130 @@
+{
+  "model": "IsolationForest",
+  "version": "v3-merged",
+  "generated_at": "2026-04-09T18:07:22.749516",
+  "training_source": "OBF-Psychiatric (Nature Scientific Data, January 2025)",
+  "kaggle_dataset": "nikitamanaenkov/psychiatric-motor-activity-dataset",
+  "config": {
+    "n_estimators": 200,
+    "contamination": 0.05,
+    "max_samples": "auto",
+    "random_state": 42
+  },
+  "extraction_params": {
+    "min_minutes_per_day": 360,
+    "inactive_threshold": 10,
+    "burst_low_threshold": 50,
+    "burst_high_threshold": 50,
+    "entropy_bins": 10
+  },
+  "dataset_stats": {
+    "control_days": 736,
+    "adhd_days": 332,
+    "features": [
+      "daily_mean_activity",
+      "daily_std_activity",
+      "pct_zeros",
+      "night_mean_activity",
+      "day_mean_activity",
+      "activity_entropy",
+      "burst_rate",
+      "mean_inactive_bout_length",
+      "circadian_quotient"
+    ]
+  },
+  "validation": {
+    "global_mannwhitney_p": 2.5646586256362772e-08,
+    "global_significant": true,
+    "control_mean_score": 0.44042746697184404,
+    "adhd_mean_score": 0.4581307144924911,
+    "per_feature_sig_count": 9,
+    "per_feature_total": 9
+  },
+  "global_shap": {
+    "daily_mean_activity": {
+      "mean_abs_shap": 0.1919,
+      "importance_pct": 8.65
+    },
+    "daily_std_activity": {
+      "mean_abs_shap": 0.1916,
+      "importance_pct": 8.64
+    },
+    "pct_zeros": {
+      "mean_abs_shap": 0.2795,
+      "importance_pct": 12.6
+    },
+    "night_mean_activity": {
+      "mean_abs_shap": 0.2286,
+      "importance_pct": 10.31
+    },
+    "day_mean_activity": {
+      "mean_abs_shap": 0.1973,
+      "importance_pct": 8.89
+    },
+    "activity_entropy": {
+      "mean_abs_shap": 0.2482,
+      "importance_pct": 11.19
+    },
+    "burst_rate": {
+      "mean_abs_shap": 0.3458,
+      "importance_pct": 15.59
+    },
+    "mean_inactive_bout_length": {
+      "mean_abs_shap": 0.3159,
+      "importance_pct": 14.24
+    },
+    "circadian_quotient": {
+      "mean_abs_shap": 0.2194,
+      "importance_pct": 9.89
+    }
+  },
+  "feature_stats": {
+    "daily_mean_activity": {
+      "mean": 188.62963832684898,
+      "std": 155.78355477843834
+    },
+    "daily_std_activity": {
+      "mean": 277.1140501724329,
+      "std": 207.73089143139435
+    },
+    "pct_zeros": {
+      "mean": 0.5840345809157931,
+      "std": 0.3024493363605519
+    },
+    "night_mean_activity": {
+      "mean": 84.1076902892799,
+      "std": 98.08075833536543
+    },
+    "day_mean_activity": {
+      "mean": 271.1560899935428,
+      "std": 230.17705417775016
+    },
+    "activity_entropy": {
+      "mean": 0.770627979014484,
+      "std": 0.5027314123843406
+    },
+    "burst_rate": {
+      "mean": 2.8614938294357315,
+      "std": 2.148827537880975
+    },
+    "mean_inactive_bout_length": {
+      "mean": 310.07891350458334,
+      "std": 547.1219886807909
+    },
+    "circadian_quotient": {
+      "mean": 5.472239190509958,
+      "std": 16.609500117865846
+    }
+  },
+  "smartphone_bridge": {
+    "note": "5 smartphone signals \u2192 9 actigraphy proxy features for inference.",
+    "mapping": {
+      "screen_time_min": "daily_mean_activity + day_mean_activity",
+      "screen_time_variance": "daily_std_activity + activity_entropy",
+      "sleep_duration_min": "night_mean_activity (inverse) + circadian_quotient",
+      "app_switches_per_hour": "burst_rate",
+      "avg_session_duration_sec": "mean_inactive_bout_length"
+    },
+    "acknowledged_imperfection": "Approximation only. Production would train IF directly on longitudinal smartphone metadata from ADHD patients."
+  }
+}
