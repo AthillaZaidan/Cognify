@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/colors';
 import { Font } from '../constants/typography';
 import type { Intervention } from '../types/api';
 
-// ─── Per-type visual config ───────────────────────────────────────────────────
 interface TypeConfig {
   icon: React.ComponentProps<typeof Feather>['name'];
   color: string;
@@ -17,36 +17,36 @@ interface TypeConfig {
 const TYPE_CONFIG: Record<string, TypeConfig> = {
   focus_reset: {
     icon: 'target',
-    color: Colors.interventionFocus,
-    bg: '#FFFBEB',
+    color: '#F59E0B',
+    bg: 'rgba(245, 158, 11, 0.1)',
     chipLabel: 'FOCUS RESET',
     duration: '~2 min',
   },
   sleep_hygiene: {
     icon: 'moon',
-    color: Colors.interventionSleep,
-    bg: '#F5F3FF',
+    color: '#8B5CF6',
+    bg: 'rgba(139, 92, 246, 0.1)',
     chipLabel: 'SLEEP HYGIENE',
     duration: '~10 min',
   },
   sustained_focus: {
     icon: 'clock',
-    color: Colors.interventionDeep,
-    bg: '#EFF6FF',
+    color: '#3B5DE7',
+    bg: 'rgba(59, 93, 231, 0.1)',
     chipLabel: 'SUSTAINED FOCUS',
     duration: '~20 min',
   },
   screen_break: {
     icon: 'smartphone',
-    color: Colors.interventionScreen,
-    bg: '#F0FDFA',
+    color: '#14B8A6',
+    bg: 'rgba(20, 184, 166, 0.1)',
     chipLabel: 'SCREEN BREAK',
     duration: '~10 min',
   },
   routine_anchor: {
     icon: 'list',
-    color: Colors.interventionRoutine,
-    bg: '#F0FDF4',
+    color: '#22C55E',
+    bg: 'rgba(34, 197, 94, 0.1)',
     chipLabel: 'ROUTINE ANCHOR',
     duration: '~5 min',
   },
@@ -54,13 +54,12 @@ const TYPE_CONFIG: Record<string, TypeConfig> = {
 
 const FALLBACK_CONFIG: TypeConfig = {
   icon: 'zap',
-  color: Colors.accent,
-  bg: Colors.accentLight,
+  color: '#3B5DE7',
+  bg: 'rgba(59, 93, 231, 0.1)',
   chipLabel: 'ACTION',
   duration: '~5 min',
 };
 
-// ─── Component ────────────────────────────────────────────────────────────────
 interface Props {
   item: Intervention;
   onComplete: (id: number) => void;
@@ -73,298 +72,303 @@ export function InterventionCard({ item, onComplete, onDismiss, muted }: Props) 
   const cfg = TYPE_CONFIG[item.type] ?? FALLBACK_CONFIG;
 
   return (
-    <View
-      style={[
-        styles.card,
-        { borderLeftColor: muted ? Colors.border : cfg.color },
-        muted && styles.cardMuted,
-      ]}
-    >
-      {/* ── Top meta row ── */}
-      <View style={styles.metaRow}>
-        <View style={[styles.chip, { backgroundColor: muted ? Colors.surfaceMuted : cfg.bg }]}>
-          <Text style={[styles.chipText, { color: muted ? Colors.textMuted : cfg.color }]}>
-            {cfg.chipLabel}
-          </Text>
-        </View>
-        <View style={styles.durationBadge}>
-          <Feather name="clock" size={10} color={Colors.textSubtle} />
-          <Text style={styles.durationText}>{cfg.duration}</Text>
-        </View>
-      </View>
-
-      {/* ── Icon + Title ── */}
-      <View style={styles.titleRow}>
-        <View
-          style={[
-            styles.iconCircle,
-            { backgroundColor: muted ? Colors.surfaceMuted : cfg.bg },
-          ]}
-        >
-          <Feather
-            name={cfg.icon}
-            size={18}
-            color={muted ? Colors.textMuted : cfg.color}
-          />
-        </View>
-        <Text style={[styles.title, muted && styles.titleMuted]} numberOfLines={2}>
-          {item.title}
-        </Text>
-      </View>
-
-      {/* ── Description ── */}
-      <Text style={styles.description}>{item.content}</Text>
-
-      {/* ── Steps toggle ── */}
-      <Pressable style={styles.toggleRow} onPress={() => setStepsOpen(!stepsOpen)}>
-        <View style={[styles.toggleLine, { backgroundColor: muted ? Colors.border : cfg.color + '30' }]} />
-        <Text style={[styles.toggleLabel, { color: muted ? Colors.textMuted : cfg.color }]}>
-          {stepsOpen ? 'Hide steps  ▲' : `${item.steps.length} steps  ▼`}
-        </Text>
-        <View style={[styles.toggleLine, { backgroundColor: muted ? Colors.border : cfg.color + '30' }]} />
-      </Pressable>
-
-      {/* ── Step timeline ── */}
-      {stepsOpen && (
-        <View style={styles.stepsContainer}>
-          {item.steps.map((step, i) => (
-            <View key={i} style={styles.stepRow}>
-              {/* Left: number + connector line */}
-              <View style={styles.stepLeft}>
-                <View
-                  style={[
-                    styles.stepBubble,
-                    {
-                      backgroundColor: muted ? Colors.surfaceMuted : cfg.bg,
-                      borderColor: muted ? Colors.border : cfg.color,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.stepNum, { color: muted ? Colors.textMuted : cfg.color }]}>
-                    {i + 1}
-                  </Text>
-                </View>
-                {i < item.steps.length - 1 && (
-                  <View
-                    style={[
-                      styles.stepConnector,
-                      { backgroundColor: muted ? Colors.border : cfg.color + '28' },
-                    ]}
-                  />
-                )}
-              </View>
-              {/* Right: step text */}
-              <Text style={[styles.stepText, muted && styles.stepTextMuted]}>{step}</Text>
+    <View style={styles.cardContainer}>
+      <View
+        style={[
+          styles.card,
+          { borderLeftColor: muted ? '#E2E8F5' : cfg.color },
+          muted && styles.cardMuted,
+        ]}
+      >
+          <View style={styles.metaRow}>
+            <View style={[styles.chip, { backgroundColor: muted ? '#F5F8FF' : cfg.bg }]}>
+              <Text style={[styles.chipText, { color: muted ? '#6B7A99' : cfg.color }]}>
+                {cfg.chipLabel}
+              </Text>
             </View>
-          ))}
-        </View>
-      )}
+            <View style={styles.durationBadge}>
+              <Feather name="clock" size={14} color="#6B7A99" />
+              <Text style={styles.durationText}>{cfg.duration}</Text>
+            </View>
+          </View>
 
-      {/* ── Actions / completion ── */}
-      {!muted ? (
-        <View style={styles.actions}>
-          <Pressable
-            style={[styles.completeBtn, { backgroundColor: cfg.color }]}
-            onPress={() => onComplete(item.id)}
-          >
-            <Feather name="check" size={13} color="#fff" />
-            <Text style={styles.completeBtnText}>Mark Complete</Text>
+          <View style={styles.titleRow}>
+            <View
+              style={[
+                styles.iconCircle,
+                { backgroundColor: muted ? '#F5F8FF' : cfg.bg },
+              ]}
+            >
+              <Feather
+                name={cfg.icon}
+                size={22}
+                color={muted ? '#6B7A99' : cfg.color}
+              />
+            </View>
+            <Text style={[styles.title, muted && styles.titleMuted]} numberOfLines={2}>
+              {item.title}
+            </Text>
+          </View>
+
+          <Text style={styles.description}>{item.content}</Text>
+
+          <Pressable style={styles.toggleRow} onPress={() => setStepsOpen(!stepsOpen)}>
+            <View style={[styles.toggleLine, { backgroundColor: muted ? '#E2E8F5' : cfg.color + '30' }]} />
+            <Text style={[styles.toggleLabel, { color: muted ? '#6B7A99' : cfg.color }]}>
+              {stepsOpen ? 'Hide steps  ▲' : `${item.steps.length} steps  ▼`}
+            </Text>
+            <View style={[styles.toggleLine, { backgroundColor: muted ? '#E2E8F5' : cfg.color + '30' }]} />
           </Pressable>
-          <Pressable style={styles.dismissBtn} onPress={() => onDismiss(item.id)}>
-            <Text style={styles.dismissText}>Dismiss</Text>
-          </Pressable>
+
+          {stepsOpen && (
+            <View style={styles.stepsContainer}>
+              {item.steps.map((step, i) => (
+                <View key={i} style={styles.stepRow}>
+                  <View style={styles.stepLeft}>
+                    <View
+                      style={[
+                        styles.stepBubble,
+                        {
+                          backgroundColor: muted ? '#F5F8FF' : cfg.bg,
+                          borderColor: muted ? '#E2E8F5' : cfg.color,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.stepNum, { color: muted ? '#6B7A99' : cfg.color }]}>
+                        {i + 1}
+                      </Text>
+                    </View>
+                    {i < item.steps.length - 1 && (
+                      <View
+                        style={[
+                          styles.stepConnector,
+                          { backgroundColor: muted ? '#E2E8F5' : cfg.color + '40' },
+                        ]}
+                      />
+                    )}
+                  </View>
+                  <Text style={[styles.stepText, muted && styles.stepTextMuted]}>{step}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {!muted ? (
+            <View style={styles.actions}>
+              <Pressable
+                style={styles.completeBtnContainer}
+                onPress={() => onComplete(item.id)}
+              >
+                <LinearGradient
+                  colors={[cfg.color, cfg.color + 'E6']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.completeBtn}
+                >
+                  <Feather name="check" size={18} color="#FFFFFF" />
+                  <Text style={styles.completeBtnText}>Mark Complete</Text>
+                </LinearGradient>
+              </Pressable>
+              <Pressable style={styles.dismissBtn} onPress={() => onDismiss(item.id)}>
+                <Text style={styles.dismissText}>Dismiss</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.doneRow}>
+              <Feather name="check-circle" size={16} color="#22C55E" />
+              <Text style={styles.doneText}>
+                Completed{item.completed_at ? ` · ${new Date(item.completed_at).toLocaleDateString()}` : ''}
+              </Text>
+            </View>
+          )}
         </View>
-      ) : (
-        <View style={styles.doneRow}>
-          <Feather name="check-circle" size={13} color={Colors.success} />
-          <Text style={styles.doneText}>
-            Completed{item.completed_at ? ` · ${new Date(item.completed_at).toLocaleDateString()}` : ''}
-          </Text>
-        </View>
-      )}
     </View>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 14,
-    borderLeftWidth: 3,
-    // shadow
-    shadowColor: '#1A1D2E',
-    shadowOffset: { width: 0, height: 2 },
+  cardContainer: {
+    marginBottom: 20,
+    borderRadius: 20,
+    shadowColor: '#3B5DE7',
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    borderLeftWidth: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F5',
   },
   cardMuted: {
-    backgroundColor: Colors.surfaceMuted,
-    shadowOpacity: 0,
-    elevation: 0,
+    backgroundColor: '#F5F8FF',
+    opacity: 0.9,
   },
-
-  // Meta row
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 20,
   },
   chip: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
   chipText: {
-    fontSize: 10,
-    fontFamily: Font.bold,
-    letterSpacing: 0.8,
+    fontSize: 11,
+    fontFamily: Font.extrabold,
+    letterSpacing: 1,
   },
   durationBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
   },
   durationText: {
-    fontSize: 11,
-    fontFamily: Font.medium,
-    color: Colors.textSubtle,
+    fontSize: 13,
+    fontFamily: Font.bold,
+    color: '#6B7A99',
   },
-
-  // Title
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 8,
+    gap: 16,
+    marginBottom: 16,
   },
   iconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
   title: {
     flex: 1,
-    fontSize: 16,
-    fontFamily: Font.bold,
-    color: Colors.text,
-    letterSpacing: -0.3,
-    lineHeight: 22,
+    fontSize: 18,
+    fontFamily: Font.extrabold,
+    color: '#0F1B2E',
+    letterSpacing: -0.5,
+    lineHeight: 26,
   },
-  titleMuted: { color: Colors.textMuted },
-
-  // Description
+  titleMuted: { color: '#6B7A99' },
   description: {
-    fontSize: 13,
-    fontFamily: Font.regular,
-    color: Colors.textMuted,
-    lineHeight: 19,
-    marginBottom: 12,
-    paddingLeft: 48,
+    fontSize: 15,
+    fontFamily: Font.medium,
+    color: '#6B7A99',
+    lineHeight: 24,
+    marginBottom: 24,
+    paddingLeft: 60,
   },
-
-  // Steps toggle
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
+    gap: 16,
+    marginBottom: 20,
   },
   toggleLine: { flex: 1, height: 1 },
   toggleLabel: {
-    fontSize: 11,
+    fontSize: 13,
     fontFamily: Font.bold,
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-
-  // Step timeline
-  stepsContainer: { paddingLeft: 4, marginBottom: 12 },
+  stepsContainer: { paddingLeft: 8, marginBottom: 24 },
   stepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
+    gap: 20,
   },
   stepLeft: {
     alignItems: 'center',
-    width: 28,
+    width: 36,
   },
   stepBubble: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepNum: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: Font.bold,
   },
   stepConnector: {
     width: 2,
-    height: 20,
+    height: 28,
     borderRadius: 1,
-    marginVertical: 2,
+    marginVertical: 6,
   },
   stepText: {
     flex: 1,
-    fontSize: 14,
-    fontFamily: Font.regular,
-    color: Colors.text,
-    lineHeight: 20,
-    paddingTop: 4,
-    paddingBottom: 22,
+    fontSize: 16,
+    fontFamily: Font.medium,
+    color: '#0F1B2E',
+    lineHeight: 24,
+    paddingTop: 6,
+    paddingBottom: 28,
   },
-  stepTextMuted: { color: Colors.textMuted },
-
-  // Actions
-  actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  completeBtn: {
+  stepTextMuted: { color: '#6B7A99' },
+  actions: { flexDirection: 'row', gap: 16, marginTop: 8 },
+  completeBtnContainer: {
     flex: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#3B5DE7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  completeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 11,
-    borderRadius: 10,
+    gap: 10,
+    paddingVertical: 16,
   },
   completeBtnText: {
-    color: '#fff',
-    fontFamily: Font.semibold,
-    fontSize: 14,
+    color: '#FFFFFF',
+    fontFamily: Font.bold,
+    fontSize: 16,
+    letterSpacing: 0.5,
   },
   dismissBtn: {
-    paddingVertical: 11,
-    paddingHorizontal: 16,
-    borderRadius: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#E2E8F5',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
   dismissText: {
-    color: Colors.textMuted,
-    fontFamily: Font.medium,
-    fontSize: 14,
+    color: '#6B7A99',
+    fontFamily: Font.bold,
+    fontSize: 16,
   },
-
-  // Done state
   doneRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
+    gap: 10,
+    marginTop: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    borderRadius: 12,
+    alignSelf: 'flex-start',
   },
   doneText: {
-    fontSize: 12,
-    fontFamily: Font.medium,
-    color: Colors.success,
+    fontSize: 14,
+    fontFamily: Font.bold,
+    color: '#22C55E',
   },
 });
