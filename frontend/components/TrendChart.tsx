@@ -21,15 +21,31 @@ export function TrendChart({ title, labels, values, ySuffix = '', referenceLine 
   }, []);
 
   const dataVals = values.length ? values : [0];
-  const chartW = containerW > 0 ? containerW : windowW - 32;
+  const chartW = containerW > 0 ? containerW : windowW - 48;
 
   const chartConfig = {
-    backgroundGradientFrom: Colors.card,
-    backgroundGradientTo: Colors.card,
+    backgroundGradientFrom: '#FFFFFF',
+    backgroundGradientFromOpacity: 0,
+    backgroundGradientTo: '#FFFFFF',
+    backgroundGradientToOpacity: 0,
     decimalPlaces: 1,
-    color: () => Colors.accent,
-    labelColor: () => Colors.textMuted,
-    propsForDots: { r: '4', strokeWidth: '2', stroke: Colors.accent },
+    color: (opacity = 1) => `rgba(59, 93, 231, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(107, 122, 153, ${opacity})`,
+    strokeWidth: 4,
+    propsForDots: { 
+      r: '6', 
+      strokeWidth: '3', 
+      stroke: '#FFFFFF',
+      fill: '#3B5DE7'
+    },
+    propsForBackgroundLines: {
+      strokeDasharray: '6 6',
+      stroke: '#E2E8F5',
+    },
+    fillShadowGradientFrom: '#3B5DE7',
+    fillShadowGradientFromOpacity: 0.25,
+    fillShadowGradientTo: '#3B5DE7',
+    fillShadowGradientToOpacity: 0.0,
   };
 
   return (
@@ -42,16 +58,21 @@ export function TrendChart({ title, labels, values, ySuffix = '', referenceLine 
             datasets: [{ data: dataVals }],
           }}
           width={chartW}
-          height={200}
+          height={240}
           yAxisSuffix={ySuffix}
           chartConfig={chartConfig}
           bezier
           style={styles.chart}
           segments={4}
+          withVerticalLines={false}
+          withOuterLines={false}
         />
       ) : null}
       {referenceLine !== undefined ? (
-        <Text style={styles.ref}>Baseline reference: {referenceLine.toFixed(2)}h</Text>
+        <View style={styles.refContainer}>
+          <View style={styles.refLine} />
+          <Text style={styles.ref}>Baseline reference: {referenceLine.toFixed(2)}h</Text>
+        </View>
       ) : null}
     </View>
   );
@@ -59,14 +80,49 @@ export function TrendChart({ title, labels, values, ySuffix = '', referenceLine 
 
 const styles = StyleSheet.create({
   wrap: {
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#E2E8F5',
     overflow: 'hidden',
+    shadowColor: '#3B5DE7',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 4,
   },
-  title: { fontSize: 15, fontFamily: Font.semibold, color: Colors.text, marginBottom: 8, letterSpacing: 0.1 },
-  chart: { borderRadius: 8, marginLeft: -12 },
-  ref: { fontSize: 11, color: Colors.textMuted, marginTop: 4, fontFamily: Font.regular },
+  title: { 
+    fontSize: 18, 
+    fontFamily: Font.extrabold, 
+    color: '#0F1B2E', 
+    marginBottom: 20, 
+    letterSpacing: -0.3 
+  },
+  chart: { 
+    borderRadius: 12, 
+    marginLeft: -16,
+    paddingRight: 20,
+  },
+  refContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    gap: 10,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F5',
+  },
+  refLine: {
+    width: 20,
+    height: 3,
+    backgroundColor: '#6B7A99',
+    borderRadius: 1.5,
+  },
+  ref: { 
+    fontSize: 13, 
+    color: '#6B7A99', 
+    fontFamily: Font.bold,
+    letterSpacing: 0.2,
+  },
 });
