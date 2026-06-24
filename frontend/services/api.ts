@@ -38,8 +38,10 @@ async function tryApi<T>(call: () => Promise<T>, fallback: () => T): Promise<T> 
   try {
     return await call();
   } catch (e: unknown) {
-    const useMock = process.env.EXPO_PUBLIC_USE_MOCK === '1';
-    if (!useMock) throw e;
+    // Mock fallback is ON by default for standalone phone use.
+    // Set EXPO_PUBLIC_USE_MOCK=0 to disable and get real errors instead.
+    const blockMock = process.env.EXPO_PUBLIC_USE_MOCK === '0';
+    if (blockMock) throw e;
     console.warn('[api] backend unavailable, using mock:', e);
     return fallback();
   }
