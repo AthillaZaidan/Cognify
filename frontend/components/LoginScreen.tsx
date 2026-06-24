@@ -1,159 +1,191 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   Pressable,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
   ActivityIndicator,
-  Alert,
-  ScrollView,
-  TextInput,
 } from 'react-native';
-import { login } from '../services/api';
-import { authFromLogin, useAuth } from '../context/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BrainSphere } from '../components/Illustrations';
 import { Colors } from '../constants/colors';
 import { Font } from '../constants/typography';
+import { useAuth, authFromLogin } from '../context/AuthContext';
+import { login } from '../services/api';
 
 export default function LoginScreen() {
   const { setAuth } = useAuth();
   const [email, setEmail] = useState('');
-  const [pw, setPw] = useState('cognify-demo');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const onSubmit = async () => {
-    const e = email.trim();
-    if (!e) {
-      Alert.alert('Missing email', 'Enter your demo username (email).');
-      return;
-    }
-    if (!pw) {
-      Alert.alert('Missing password', 'Enter the demo password.');
+  const handleLogin = async () => {
+    if (!email || !password) {
+      setError('Please enter email and password');
       return;
     }
     setLoading(true);
+    setError('');
     try {
-      const res = await login({ email: e, password: pw });
-      setAuth(authFromLogin(res));
-    } catch (err) {
-      Alert.alert('Could not sign in', String(err));
+      const user = await login({ email, password });
+      setAuth(authFromLogin(user));
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.root}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Cognify</Text>
-        <Text style={styles.tag}>ADHD follow-up · demo environment</Text>
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <LinearGradient
+      colors={['#3B5DE7', '#2A47C7']}
+      style={styles.container}
+    >
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.formBox}>
-          <Text style={styles.fieldLabel}>Username (email)</Text>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            placeholder="e.g. patient_000@cognify.demo"
-            placeholderTextColor={Colors.onPrimaryMuted}
-            style={styles.input}
-            editable={!loading}
-          />
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <BrainSphere size={140} />
+            <Text style={styles.title}>Cognify</Text>
+            <Text style={styles.subtitle}>ADHD behavioral monitoring</Text>
+          </View>
 
-          <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Password</Text>
-          <TextInput
-            value={pw}
-            onChangeText={setPw}
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="cognify-demo"
-            placeholderTextColor={Colors.onPrimaryMuted}
-            style={styles.input}
-            editable={!loading}
-          />
+          <View style={styles.card}>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor={Colors.textSubtle}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor={Colors.textSubtle}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
 
-          <Pressable
-            style={({ pressed }) => [styles.primaryBtn, pressed && styles.primaryBtnPressed]}
-            onPress={onSubmit}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={Colors.onPrimary} />
-            ) : (
-              <Text style={styles.primaryBtnText}>Sign in</Text>
-            )}
-          </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                styles.button,
+                pressed && styles.buttonPressed,
+                loading && styles.buttonDisabled
+              ]}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={Colors.accent} />
+              ) : (
+                <Text style={styles.buttonText}>Sign in</Text>
+              )}
+            </Pressable>
+          </View>
 
           <Text style={styles.hint}>
-            Use one of the seeded demo emails (patients and one psychologist).
+            Try: patient_000@cognify.demo / cognify-demo
           </Text>
         </View>
-      </ScrollView>
-    </View>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.primary },
-  header: { paddingHorizontal: 24, paddingTop: 72, paddingBottom: 28 },
+  container: {
+    flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
   title: {
     fontFamily: Font.extrabold,
-    fontSize: 36,
-    letterSpacing: -0.6,
-    color: Colors.onPrimary,
-    marginBottom: 6,
+    fontSize: 40,
+    color: '#FFFFFF',
+    letterSpacing: -1,
+    marginTop: 24,
   },
-  tag: { fontFamily: Font.regular, fontSize: 14, color: Colors.onPrimaryMuted },
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 48 },
-  formBox: {
-    marginTop: 6,
-    marginBottom: 18,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.14)',
-  },
-  fieldLabel: {
+  subtitle: {
     fontFamily: Font.medium,
-    fontSize: 12,
-    color: Colors.onPrimaryMuted,
-    marginBottom: 8,
+    fontSize: 16,
+    color: Colors.onAccentMuted,
+    marginTop: 8,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#3B5DE7',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
   },
   input: {
-    fontFamily: Font.semibold,
-    fontSize: 14,
-    color: Colors.onPrimary,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: '#F5F8FF',
+    borderWidth: 1,
+    borderColor: '#E2E8F5',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 56,
+    marginBottom: 16,
+    fontFamily: Font.medium,
+    fontSize: 16,
+    color: Colors.text,
   },
-  primaryBtn: {
-    marginTop: 14,
-    backgroundColor: Colors.onPrimary,
-    paddingVertical: 12,
-    borderRadius: 10,
+  button: {
+    backgroundColor: '#FFFFFF',
+    height: 56,
+    borderRadius: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
   },
-  primaryBtnPressed: { opacity: 0.85 },
-  primaryBtnText: { fontFamily: Font.bold, fontSize: 15, color: Colors.primary },
+  buttonPressed: {
+    opacity: 0.9,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  buttonText: {
+    fontFamily: Font.bold,
+    fontSize: 16,
+    color: Colors.accent,
+  },
+  errorText: {
+    fontFamily: Font.medium,
+    fontSize: 14,
+    color: Colors.danger,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
   hint: {
-    marginTop: 10,
-    fontFamily: Font.regular,
-    fontSize: 12,
-    lineHeight: 18,
-    color: Colors.onPrimaryMuted,
+    fontFamily: Font.medium,
+    fontSize: 14,
+    color: Colors.onAccentMuted,
+    textAlign: 'center',
+    marginTop: 32,
   },
 });
