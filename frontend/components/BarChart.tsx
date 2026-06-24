@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/colors';
 import { Font } from '../constants/typography';
 
@@ -19,11 +20,16 @@ export function BarChartWeekly({ rows, unit }: { rows: Row[]; unit: string }) {
           <View key={r.label} style={styles.row}>
             <Text style={styles.label}>{r.label}</Text>
             <View style={styles.track}>
-              <View style={[styles.fill, { width: `${pct}%` }]} />
+              <LinearGradient
+                colors={['#3B5DE7', '#2A47C7']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.fill, { width: `${pct}%` }]}
+              />
             </View>
             <Text style={styles.val}>
               {r.value.toFixed(1)}
-              {unit}
+              <Text style={styles.unit}>{unit}</Text>
             </Text>
           </View>
         );
@@ -33,16 +39,45 @@ export function BarChartWeekly({ rows, unit }: { rows: Row[]; unit: string }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 10, width: '100%' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  label: { width: 36, fontSize: 12, fontFamily: Font.medium, color: Colors.textMuted },
+  wrap: { 
+    gap: 16, 
+    width: '100%',
+    paddingVertical: 12,
+  },
+  row: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 16 
+  },
+  label: { 
+    width: 44, 
+    fontSize: 14, 
+    fontFamily: Font.bold, 
+    color: '#6B7A99',
+    letterSpacing: 0.5,
+  },
   track: {
     flex: 1,
-    height: 10,
-    backgroundColor: Colors.border,
-    borderRadius: 5,
+    height: 16,
+    backgroundColor: '#F5F8FF',
+    borderRadius: 8,
     overflow: 'hidden',
   },
-  fill: { height: '100%', backgroundColor: Colors.accent, borderRadius: 5 },
-  val: { width: 52, fontSize: 12, fontFamily: Font.semibold, color: Colors.text, textAlign: 'right' },
+  fill: { 
+    height: '100%', 
+    borderRadius: 8,
+  },
+  val: { 
+    width: 64, 
+    fontSize: 15, 
+    fontFamily: Font.extrabold, 
+    color: '#0F1B2E', 
+    textAlign: 'right',
+    letterSpacing: 0.2,
+  },
+  unit: {
+    fontFamily: Font.bold,
+    color: '#6B7A99',
+    fontSize: 12,
+  }
 });
