@@ -1,3 +1,4 @@
+import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
@@ -9,27 +10,25 @@ interface Props {
   baseline?: string;
   status?: 'High' | 'Normal' | 'Low' | 'Info';
   progress?: number;
-  /** Optional: show directional delta vs baseline  */
   delta?: 'up' | 'down' | 'neutral';
 }
 
 export function MetricCard({ label, value, baseline, status, progress, delta }: Props) {
-  let statusBg   = Colors.surfaceMuted;
-  let statusColor = Colors.textMuted;
+  let statusColor: string = Colors.textMuted;
   let statusIcon: React.ComponentProps<typeof Feather>['name'] = 'minus';
 
   if (status === 'High') {
-    statusBg    = Colors.dangerLight;
     statusColor = Colors.danger;
-    statusIcon  = 'alert-triangle';
+    statusIcon = 'alert-triangle';
   } else if (status === 'Normal') {
-    statusBg    = Colors.successLight;
     statusColor = Colors.success;
-    statusIcon  = 'check';
+    statusIcon = 'check';
   } else if (status === 'Low') {
-    statusBg    = Colors.warningLight;
     statusColor = Colors.warning;
-    statusIcon  = 'arrow-down';
+    statusIcon = 'arrow-down';
+  } else if (status === 'Info') {
+    statusColor = Colors.textMuted;
+    statusIcon = 'info';
   }
 
   const deltaIcon =
@@ -37,75 +36,80 @@ export function MetricCard({ label, value, baseline, status, progress, delta }: 
     delta === 'down' ? 'arrow-down-right' : null;
 
   return (
-    <View style={styles.card}>
-      <View style={styles.topRow}>
-        <Text style={styles.label}>{label}</Text>
-        {status ? (
-          <View style={[styles.statusDot, { backgroundColor: statusBg }]}>
-            <Feather name={statusIcon} size={10} color={statusColor} />
+    <View style={styles.cardContainer}>
+      <View style={styles.card}>
+        <View style={styles.topRow}>
+          <Text style={styles.label}>{label}</Text>
+          {status ? (
+            <View style={[styles.statusDot, { backgroundColor: statusColor }]}>
+              <Feather name={statusIcon} size={12} color="#FFFFFF" />
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.valueRow}>
+          <Text style={styles.value} numberOfLines={1}>{value}</Text>
+          {deltaIcon ? (
+            <Feather
+              name={deltaIcon}
+              size={16}
+              color={delta === 'up' ? Colors.danger : Colors.success}
+              style={styles.deltaIcon}
+            />
+          ) : null}
+        </View>
+
+        {baseline ? (
+          <Text style={styles.baseline}>{baseline}</Text>
+        ) : null}
+
+        {progress !== undefined ? (
+          <View style={styles.barTrack}>
+            <View
+              style={[
+                styles.barFill,
+                {
+                  width: `${Math.min(100, progress * 100)}%`,
+                  backgroundColor: status ? statusColor : Colors.accent,
+                },
+              ]}
+            />
           </View>
         ) : null}
       </View>
-
-      <View style={styles.valueRow}>
-        <Text style={styles.value} numberOfLines={1}>{value}</Text>
-        {deltaIcon ? (
-          <Feather
-            name={deltaIcon}
-            size={14}
-            color={delta === 'up' ? Colors.danger : Colors.success}
-            style={styles.deltaIcon}
-          />
-        ) : null}
-      </View>
-
-      {baseline ? (
-        <Text style={styles.baseline}>{baseline}</Text>
-      ) : null}
-
-      {progress !== undefined ? (
-        <View style={styles.barTrack}>
-          <View
-            style={[
-              styles.barFill,
-              {
-                width: `${Math.min(100, progress * 100)}%`,
-                backgroundColor:
-                  status === 'High' ? Colors.danger :
-                  status === 'Low'  ? Colors.warning : Colors.accent,
-              },
-            ]}
-          />
-        </View>
-      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: 14,
+  cardContainer: {
     flex: 1,
     minWidth: '45%',
-    shadowColor: '#1A1D2E',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F5',
+    flex: 1,
+    shadowColor: '#3B5DE7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
   },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 12,
   },
   label: {
-    fontSize: 11,
-    fontFamily: Font.semibold,
+    fontSize: 13,
+    fontFamily: Font.bold,
     color: Colors.textMuted,
-    letterSpacing: 0.2,
+    textTransform: 'uppercase',
     flex: 1,
   },
   statusDot: {
@@ -118,30 +122,33 @@ const styles = StyleSheet.create({
   valueRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 4,
+    gap: 6,
   },
   value: {
-    fontSize: 22,
+    fontSize: 26,
     fontFamily: Font.extrabold,
     color: Colors.text,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
-  deltaIcon: { marginBottom: 3 },
+  deltaIcon: {
+    marginBottom: 6,
+    opacity: 0.9,
+  },
   baseline: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: Font.regular,
     color: Colors.textSubtle,
-    marginTop: 4,
+    marginTop: 6,
   },
   barTrack: {
     height: 3,
     backgroundColor: Colors.borderLight,
-    borderRadius: 2,
-    marginTop: 10,
+    borderRadius: 1.5,
+    marginTop: 14,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: 1.5,
   },
 });
