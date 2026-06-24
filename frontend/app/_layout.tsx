@@ -17,15 +17,6 @@ import LoginScreen from '../components/LoginScreen';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-/**
- * Renders the correct UI based on auth state — no router.replace, no Redirect,
- * no loops. The Stack only mounts when the user is authenticated, so every
- * screen inside it can assume auth is present.
- *
- *   not ready  →  boot spinner
- *   ready, no auth  →  <LoginScreen> (rendered directly, outside the Stack)
- *   ready, auth set  →  <Stack> starting at app/index.tsx → redirects to /(tabs)
- */
 function RootApp() {
   const { auth, ready } = useAuth();
 
