@@ -8,9 +8,6 @@ import { BehavioralTrackerProvider } from '../../context/BehavioralTrackerContex
 
 export default function TabsLayout() {
   const { auth } = useAuth();
-
-  // auth is always set here: RootApp in _layout.tsx only mounts the Stack
-  // (and therefore this layout) when the user is authenticated.
   const isPsych = auth?.role === 'psychologist';
 
   const tabs = (
@@ -19,12 +16,14 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: Colors.accent,
         tabBarInactiveTintColor: Colors.textMuted,
-        tabBarLabelStyle: { fontFamily: Font.medium, fontSize: 11 },
+        tabBarLabelStyle: { fontFamily: Font.medium, fontSize: 11, marginBottom: 4 },
         tabBarStyle: {
-          backgroundColor: Colors.surface,
+          backgroundColor: '#FFFFFF',
           borderTopColor: Colors.border,
           borderTopWidth: StyleSheet.hairlineWidth,
           elevation: 0,
+          height: 60,
+          paddingTop: 8,
         },
       }}
     >
