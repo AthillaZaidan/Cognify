@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,17 @@ import {
   StyleSheet,
   RefreshControl,
   Pressable,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../context/AuthContext';
 import { useBehavioralFlush } from '../../context/BehavioralTrackerContext';
 import { getDashboard, getPatients, getAlerts } from '../../services/api';
 import type { DashboardResponse } from '../../types/api';
-import { Colors } from '../../constants/colors';
+import { Colors, headerColors } from '../../constants/colors';
 import { Font } from '../../constants/typography';
 import { RiskBadge } from '../../components/RiskBadge';
 import { AnomalyCard } from '../../components/AnomalyCard';
@@ -29,6 +31,25 @@ export default function DashboardScreen() {
     null
   );
   const [refreshing, setRefreshing] = useState(false);
+
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.03,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [pulseAnim]);
 
   const load = useCallback(async () => {
     if (!auth) return;
@@ -63,33 +84,41 @@ export default function DashboardScreen() {
 
   if (auth.role === 'psychologist') {
     return (
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.scrollInner, { paddingTop: insets.top + 16 }]}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={Colors.accent}
-            colors={[Colors.accent]}
-          />
-        }
-      >
-        <Text style={styles.pageTitle}>Caseload</Text>
-        <Text style={styles.pageSub}>
-          {psychSummary
-            ? `${psychSummary.patients} active · ${psychSummary.alerts} alerts need review`
-            : 'Loading…'}
-        </Text>
-        <Text style={styles.hint}>Open Patients for the full roster and alert queue.</Text>
-        <Pressable
-          style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}
-          onPress={signOut}
+      <View style={styles.container}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[styles.scrollInner, { paddingTop: insets.top + 16 }]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={Colors.accent}
+              colors={[Colors.accent]}
+            />
+          }
         >
-          <Feather name="log-out" size={16} color={Colors.textMuted} />
-          <Text style={styles.signOutText}>Switch account</Text>
-        </Pressable>
-      </ScrollView>
+          <Text style={styles.pageTitle}>Caseload</Text>
+          <Text style={styles.pageSub}>
+            {psychSummary
+              ? `${psychSummary.patients} active · ${psychSummary.alerts} alerts need review`
+              : 'Loading…'}
+          </Text>
+          <Pressable
+            style={({ pressed }) => [styles.patientsLink, pressed && { opacity: 0.7 }]}
+            onPress={() => router.push('/(tabs)/psychologist')}
+          >
+            <Text style={styles.patientsLinkText}>Open Patients for full roster</Text>
+            <Feather name="arrow-right" size={16} color={Colors.accent} />
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}
+            onPress={signOut}
+          >
+            <Feather name="log-out" size={16} color={Colors.textMuted} />
+            <Text style={styles.signOutText}>Sign out</Text>
+          </Pressable>
+        </ScrollView>
+      </View>
     );
   }
 
@@ -108,194 +137,245 @@ export default function DashboardScreen() {
   const sw = d?.latest_data?.app_switches_per_hour ?? 0;
   const swBase = d?.baseline.app_switches_per_hour?.mean ?? 6;
 
+  const gradientColors: [string, string] = headerColors(risk) as [string, string];
+
   return (
-    <ScrollView
-      style={styles.scroll}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={Colors.accent}
-          colors={[Colors.accent]}
-        />
-      }
-    >
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.greet}>
-              Good {greet}, {firstName}
-            </Text>
-            <Text style={styles.greetSub}>
-              {latestDate ? `How today looks · ${latestDate}` : 'Loading your overview…'}
-            </Text>
-          </View>
-          <View style={styles.headerRight}>
-            <Pressable
-              accessibilityRole="button"
-              style={({ pressed }) => [styles.signOutIcon, pressed && { opacity: 0.75 }]}
-              onPress={signOut}
-            >
-              <Feather name="log-out" size={18} color={Colors.onPrimary} />
-            </Pressable>
-            <RiskBadge level={risk} />
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.body}>
-        {showAnomaly && d?.latest_anomaly ? (
-          <AnomalyCard
-            anomaly={d.latest_anomaly}
-            onStartReset={() => router.push('/(tabs)/interventions')}
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.accent}
+            colors={[Colors.accent]}
           />
-        ) : null}
-
-        <View style={styles.metricsRow}>
-          <MetricCard
-            label="Sleep"
-            value={`${sleepH.toFixed(1)}h`}
-            baseline={`Your usual: ${sleepBase.toFixed(1)}h`}
-            progress={Math.min(sleepH / (sleepBase * 1.2), 1)}
-          />
-          <MetricCard
-            label="App Switching"
-            value={`${sw.toFixed(1)}/hr`}
-            baseline={`Your usual: ${swBase.toFixed(1)}/hr`}
-            progress={Math.min(sw / (swBase * 1.5), 1)}
-          />
-        </View>
-
-        <Text style={styles.sectionTitle}>Quick Supports</Text>
-        <Text style={styles.sectionSub}>
-          {d?.active_interventions
-            ? `${d.active_interventions} recovery action${d.active_interventions > 1 ? 's' : ''} waiting · tap to view`
-            : 'CBT-based tools — tap any to open Actions'}
-        </Text>
-
-        <View style={styles.supportList}>
-          {[
-            { icon: 'wind' as const, t: '4-7-8 breathing', s: 'Short exhale-focused cycle' },
-            { icon: 'layers' as const, t: 'Task split', s: 'One outcome, smallest next step' },
-            { icon: 'headphones' as const, t: 'Sensory reset', s: 'Sound or touch anchor' },
-            { icon: 'navigation' as const, t: 'Movement', s: 'Two minutes away from screen' },
-          ].map((x) => (
-            <Pressable
-              key={x.t}
-              style={({ pressed }) => [styles.supportRow, pressed && styles.supportRowPressed]}
-              onPress={() => router.push('/(tabs)/interventions')}
-            >
-              <View style={styles.supportIcon}>
-                <Feather name={x.icon} size={20} color={Colors.accent} />
-              </View>
-              <View style={styles.supportText}>
-                <Text style={styles.supportTitle}>{x.t}</Text>
-                <Text style={styles.supportSub}>{x.s}</Text>
-              </View>
-              <Feather name="chevron-right" size={18} color={Colors.textMuted} />
-            </Pressable>
-          ))}
-        </View>
-
-        <Pressable
-          style={({ pressed }) => [styles.flushBtn, pressed && styles.flushBtnPressed]}
-          onPress={() => {
-            void flush();
-            void load();
-          }}
+        }
+      >
+        <LinearGradient
+          colors={gradientColors}
+          style={[styles.header, { paddingTop: insets.top + 16 }]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
         >
-          <Text style={styles.flushText}>Send session sample to API (demo)</Text>
-        </Pressable>
+          <View style={styles.headerRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.greet}>
+                Good {greet}, {firstName}
+              </Text>
+              <Text style={styles.greetSub}>
+                {latestDate ? `How today looks · ${latestDate}` : 'Loading your overview…'}
+              </Text>
+            </View>
+            <View style={styles.headerRight}>
+              <RiskBadge level={risk} />
+              <Pressable
+                accessibilityRole="button"
+                style={({ pressed }) => [styles.signOutIcon, pressed && { opacity: 0.75 }]}
+                onPress={signOut}
+              >
+                <Feather name="log-out" size={16} color={Colors.onPrimaryMuted || '#9BA8C0'} />
+              </Pressable>
+            </View>
+          </View>
+        </LinearGradient>
 
-        <Pressable
-          style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}
-          onPress={signOut}
-        >
-          <Feather name="log-out" size={16} color={Colors.textMuted} />
-          <Text style={styles.signOutText}>Switch account</Text>
-        </Pressable>
-      </View>
-    </ScrollView>
+        <View style={styles.body}>
+          {showAnomaly && d?.latest_anomaly ? (
+            <View style={styles.anomalyContainer}>
+              <Animated.View
+                style={[
+                  styles.pulseRing,
+                  {
+                    transform: [{ scale: pulseAnim }],
+                    borderColor: risk === 'attention_needed' ? Colors.danger : Colors.warning,
+                  },
+                ]}
+              />
+              <AnomalyCard
+                anomaly={d.latest_anomaly}
+                onStartReset={() => router.push('/(tabs)/interventions')}
+              />
+            </View>
+          ) : null}
+
+          <View style={styles.metricsRow}>
+            <MetricCard
+              label="Sleep"
+              value={`${sleepH.toFixed(1)}h`}
+              baseline={`Your usual: ${sleepBase.toFixed(1)}h`}
+              progress={Math.min(sleepH / (sleepBase * 1.2), 1)}
+            />
+            <MetricCard
+              label="App Switching"
+              value={`${sw.toFixed(1)}/hr`}
+              baseline={`Your usual: ${swBase.toFixed(1)}/hr`}
+              progress={Math.min(sw / (swBase * 1.5), 1)}
+            />
+          </View>
+
+          <Text style={styles.sectionTitle}>Quick Supports</Text>
+          <Text style={styles.sectionSub}>
+            {d?.active_interventions
+              ? `${d.active_interventions} recovery action${d.active_interventions > 1 ? 's' : ''} waiting · tap to view`
+              : 'CBT-based tools — tap any to open Actions'}
+          </Text>
+
+          <View style={styles.supportList}>
+            {[
+              { icon: 'wind' as const, t: '4-7-8 Breathing', s: 'Short exhale-focused cycle' },
+              { icon: 'layers' as const, t: 'Task Split', s: 'One outcome, smallest next step' },
+              { icon: 'headphones' as const, t: 'Sensory Reset', s: 'Sound or touch anchor' },
+              { icon: 'navigation' as const, t: 'Movement', s: 'Two minutes away from screen' },
+            ].map((x) => (
+              <Pressable
+                key={x.t}
+                style={({ pressed }) => [styles.supportRow, pressed && styles.supportRowPressed]}
+                onPress={() => router.push('/(tabs)/interventions')}
+              >
+                <View style={styles.supportIcon}>
+                  <Feather name={x.icon} size={20} color={Colors.accent} />
+                </View>
+                <View style={styles.supportText}>
+                  <Text style={styles.supportTitle}>{x.t}</Text>
+                  <Text style={styles.supportSub}>{x.s}</Text>
+                </View>
+                <Feather name="chevron-right" size={18} color={Colors.textMuted} />
+              </Pressable>
+            ))}
+          </View>
+
+          <Pressable
+            style={({ pressed }) => [styles.flushBtn, pressed && styles.flushBtnPressed]}
+            onPress={() => {
+              void flush();
+              void load();
+            }}
+          >
+            <Text style={styles.flushText}>Send session sample to API (demo)</Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}
+            onPress={signOut}
+          >
+            <Feather name="log-out" size={16} color={Colors.textMuted} />
+            <Text style={styles.signOutText}>Sign out</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: Colors.background },
+  scroll: { flex: 1 },
   scrollInner: { padding: 20, paddingBottom: 40 },
   header: {
-    backgroundColor: Colors.accent,
     paddingHorizontal: 20,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    paddingBottom: 28,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  headerRight: { alignItems: 'flex-end', gap: 10 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   signOutIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.35)',
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
-  greet: { color: Colors.onPrimary, fontSize: 22, fontFamily: Font.bold, letterSpacing: -0.3 },
-  greetSub: { color: Colors.onPrimaryMuted, marginTop: 6, fontSize: 14, fontFamily: Font.regular, lineHeight: 20 },
-  body: { padding: 16 },
-  metricsRow: { flexDirection: 'row', gap: 12, marginBottom: 8 },
-  sectionTitle: { fontSize: 15, fontFamily: Font.semibold, color: Colors.text, marginTop: 12, letterSpacing: 0.15 },
-  sectionSub: { fontSize: 13, fontFamily: Font.regular, color: Colors.textMuted, marginBottom: 10 },
+  greet: { color: '#FFFFFF', fontSize: 22, fontFamily: Font.bold, letterSpacing: -0.5 },
+  greetSub: { color: Colors.onPrimaryMuted || '#9BA8C0', marginTop: 4, fontSize: 14, fontFamily: Font.regular, lineHeight: 20 },
+  body: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40, backgroundColor: Colors.background },
+  anomalyContainer: {
+    marginBottom: 24,
+    position: 'relative',
+  },
+  pulseRing: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 16,
+    borderWidth: 2,
+    opacity: 0.5,
+  },
+  metricsRow: { flexDirection: 'row', gap: 12, marginBottom: 32 },
+  sectionTitle: { fontSize: 13, fontFamily: Font.bold, color: Colors.textMuted, letterSpacing: 0.5, textTransform: 'uppercase' },
+  sectionSub: { fontSize: 13, fontFamily: Font.regular, color: Colors.textSubtle, marginTop: 4, marginBottom: 16 },
   supportList: {
-    borderRadius: 0,
-    overflow: 'hidden',
-    marginBottom: 8,
+    gap: 12,
+    marginBottom: 32,
   },
   supportRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#3B5DE7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  supportRowPressed: { opacity: 0.85, backgroundColor: Colors.surfaceMuted },
+  supportRowPressed: { backgroundColor: '#F8FAFC' },
   supportIcon: {
     width: 40,
     height: 40,
-    borderRadius: 10,
-    backgroundColor: Colors.accentLight,
+    borderRadius: 12,
+    backgroundColor: 'rgba(59, 93, 231, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 16,
   },
   supportText: { flex: 1 },
-  supportTitle: { fontSize: 15, fontFamily: Font.medium, color: Colors.text },
+  supportTitle: { fontSize: 15, fontFamily: Font.semibold, color: Colors.text, letterSpacing: 0.1 },
   supportSub: { fontSize: 13, fontFamily: Font.regular, color: Colors.textMuted, marginTop: 2 },
   flushBtn: {
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+    backgroundColor: 'transparent',
     alignItems: 'center',
+    marginBottom: 24,
   },
-  flushBtnPressed: { backgroundColor: Colors.surfaceMuted },
-  flushText: { color: Colors.textMuted, fontFamily: Font.medium, fontSize: 13 },
-  pageTitle: { fontSize: 24, fontFamily: Font.bold, color: Colors.text, letterSpacing: -0.4 },
+  flushBtnPressed: { backgroundColor: '#FFFFFF' },
+  flushText: { color: Colors.textMuted, fontFamily: Font.medium, fontSize: 14 },
+  pageTitle: { fontSize: 28, fontFamily: Font.bold, color: Colors.text, letterSpacing: -0.5 },
   pageSub: { fontSize: 15, fontFamily: Font.regular, color: Colors.textMuted, marginTop: 8, lineHeight: 22 },
-  hint: { marginTop: 16, fontSize: 14, fontFamily: Font.regular, color: Colors.accent },
+  patientsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignSelf: 'flex-start',
+    shadowColor: '#3B5DE7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  patientsLinkText: { fontFamily: Font.medium, fontSize: 15, color: Colors.text },
   signOutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'center',
-    gap: 6,
-    marginTop: 24,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
   },
   signOutText: { fontFamily: Font.medium, fontSize: 13, color: Colors.textMuted },
 });
