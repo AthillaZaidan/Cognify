@@ -1,9 +1,10 @@
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Animated } from 'react-native';
+import { useEffect, useRef } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import { Font } from '../constants/typography';
+import { PulseOrb } from './Illustrations';
 import type { AnomalySnapshot } from '../types/api';
-import { signalToTitle } from '../utils/format';
 
 const SIGNAL_SHORT: Record<string, string> = {
   app_switches_per_hour:    'App switching',
@@ -46,7 +47,6 @@ export function AnomalyCard({ anomaly, onStartReset }: Props) {
   const severity = anomaly.alert_severity ?? 'MILD';
   const isSevere = severity === 'SEVERE';
 
-  // Top anomalous SHAP contributions (toward_anomaly direction only)
   const badContribs = anomaly.shap_contributions
     .filter((c) => c.direction === 'toward_anomaly')
     .slice(0, 3);
@@ -54,22 +54,22 @@ export function AnomalyCard({ anomaly, onStartReset }: Props) {
     .filter((c) => c.direction === 'toward_normal')
     .slice(0, 2);
 
+  const accentColor = isSevere ? '#EF4444' : '#F59E0B';
+
   return (
-    <View style={styles.card}>
-      {/* ── Status bar ── */}
+    <View style={[styles.card, { borderLeftColor: accentColor }]}>
       <View style={styles.statusBar}>
         <View style={styles.statusLeft}>
-          <View style={styles.pulseDot} />
-          <Text style={styles.statusLabel}>HEADS UP</Text>
+          <PulseOrb size={24} />
+          <Text style={styles.statusLabel}>ATTENTION</Text>
         </View>
-        <View style={[styles.severityBadge, isSevere && styles.severityBadgeSevere]}>
-          <Text style={[styles.severityText, isSevere && styles.severityTextSevere]}>
+        <View style={[styles.severityBadge, { backgroundColor: isSevere ? '#FEF0F0' : '#FEF6E7' }]}>
+          <Text style={[styles.severityText, { color: accentColor }]}>
             {friendlySeverity(severity)}
           </Text>
         </View>
       </View>
 
-      {/* ── Primary message ── */}
       <Text style={styles.title}>
         {shortName(topSignal)} is {zMagnitude(z)} higher than usual
       </Text>
@@ -78,30 +78,29 @@ export function AnomalyCard({ anomaly, onStartReset }: Props) {
         {anomaly.flagged_signals > 1 ? ` — ${anomaly.flagged_signals} habits shifted` : ''}.
       </Text>
 
-      {/* ── Intensity bar ── */}
       <View style={styles.wcsRow}>
         <Text style={styles.wcsLabel}>How different</Text>
         <View style={styles.wcsTrack}>
-          <View style={[styles.wcsFill, { width: `${Math.min(100, (anomaly.wcs / 6) * 100)}%` }]} />
+          <View
+            style={[styles.wcsFill, { width: `${Math.min(100, (anomaly.wcs / 6) * 100)}%`, backgroundColor: accentColor }]}
+          />
         </View>
-        <Text style={styles.wcsValue}>{anomaly.wcs.toFixed(1)}</Text>
+        <Text style={[styles.wcsValue, { color: accentColor }]}>{anomaly.wcs.toFixed(1)}</Text>
       </View>
 
-      {/* ── SHAP contributor pills ── */}
-      {badContribs.length > 0 && (
+      {(badContribs.length > 0 || okContribs.length > 0) && (
         <View style={styles.shapSection}>
-          <Text style={styles.shapLabel}>What we noticed</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillScroll}>
             <View style={styles.pillRow}>
               {badContribs.map((c) => (
                 <View key={c.feature} style={styles.pillBad}>
-                  <Feather name="trending-up" size={10} color={Colors.danger} />
+                  <Feather name="trending-up" size={14} color="#EF4444" />
                   <Text style={styles.pillTextBad}>{shortName(c.feature)}</Text>
                 </View>
               ))}
               {okContribs.map((c) => (
                 <View key={c.feature} style={styles.pillOk}>
-                  <Feather name="trending-down" size={10} color={Colors.success} />
+                  <Feather name="trending-down" size={14} color="#22C55E" />
                   <Text style={styles.pillTextOk}>{shortName(c.feature)}</Text>
                 </View>
               ))}
@@ -110,11 +109,8 @@ export function AnomalyCard({ anomaly, onStartReset }: Props) {
         </View>
       )}
 
-      {/* ── CTA ── */}
       <Pressable style={styles.cta} onPress={onStartReset}>
-        <Feather name="zap" size={14} color="#fff" />
         <Text style={styles.ctaText}>Start Recovery Action</Text>
-        <Feather name="chevron-right" size={14} color="rgba(255,255,255,0.7)" />
       </Pressable>
     </View>
   );
@@ -122,162 +118,132 @@ export function AnomalyCard({ anomaly, onStartReset }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFF5F5',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 24,
+    borderRadius: 20,
+    padding: 24,
     borderWidth: 1,
-    borderColor: Colors.danger + '33',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: Colors.danger,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    borderColor: '#E2E8F5',
+    borderLeftWidth: 4,
+    shadowColor: '#3B5DE7',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
     elevation: 4,
   },
-
-  // Status bar
   statusBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 20,
   },
-  statusLeft: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  pulseDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.danger,
-  },
+  statusLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   statusLabel: {
-    fontSize: 10,
-    fontFamily: Font.bold,
-    color: Colors.danger,
-    letterSpacing: 0.8,
+    fontSize: 12,
+    fontFamily: Font.extrabold,
+    color: '#EF4444',
+    letterSpacing: 1,
   },
   severityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    backgroundColor: Colors.warningLight,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
-  severityBadgeSevere: { backgroundColor: Colors.dangerLight },
   severityText: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: Font.bold,
-    color: Colors.warning,
     letterSpacing: 0.5,
   },
-  severityTextSevere: { color: Colors.danger },
-
-  // Message
   title: {
-    fontSize: 18,
-    fontFamily: Font.bold,
-    color: Colors.text,
-    letterSpacing: -0.3,
-    marginBottom: 4,
-    lineHeight: 24,
+    fontSize: 20,
+    fontFamily: Font.extrabold,
+    color: '#0F1B2E',
+    marginBottom: 10,
+    letterSpacing: -0.5,
   },
   body: {
-    fontSize: 13,
-    fontFamily: Font.regular,
-    color: Colors.textMuted,
-    lineHeight: 19,
-    marginBottom: 14,
+    fontSize: 15,
+    fontFamily: Font.medium,
+    color: '#6B7A99',
+    lineHeight: 22,
+    marginBottom: 24,
   },
-
-  // WCS score bar
   wcsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 14,
+    gap: 16,
+    marginBottom: 24,
   },
   wcsLabel: {
-    fontSize: 11,
-    fontFamily: Font.medium,
-    color: Colors.textMuted,
-    width: 72,
+    fontSize: 13,
+    fontFamily: Font.bold,
+    color: '#6B7A99',
   },
   wcsTrack: {
     flex: 1,
-    height: 5,
-    backgroundColor: Colors.border,
+    height: 6,
+    backgroundColor: '#F5F8FF',
     borderRadius: 3,
     overflow: 'hidden',
   },
   wcsFill: {
     height: '100%',
-    backgroundColor: Colors.danger,
     borderRadius: 3,
   },
   wcsValue: {
-    fontSize: 12,
-    fontFamily: Font.bold,
-    color: Colors.danger,
-    width: 32,
-    textAlign: 'right',
+    fontSize: 15,
+    fontFamily: Font.extrabold,
   },
-
-  // SHAP pills
-  shapSection: { marginBottom: 14 },
-  shapLabel: {
-    fontSize: 11,
-    fontFamily: Font.semibold,
-    color: Colors.textMuted,
-    marginBottom: 6,
-    letterSpacing: 0.2,
+  shapSection: { marginBottom: 28 },
+  pillScroll: {
+    paddingRight: 24,
   },
-  pillRow: { flexDirection: 'row', gap: 6 },
+  pillRow: { flexDirection: 'row', gap: 10 },
   pillBad: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.dangerLight,
-    borderWidth: 1,
-    borderColor: Colors.danger + '28',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
+    gap: 8,
+    backgroundColor: '#FEF0F0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
   },
   pillTextBad: {
-    fontSize: 11,
-    fontFamily: Font.medium,
-    color: Colors.danger,
+    fontSize: 13,
+    fontFamily: Font.bold,
+    color: '#EF4444',
   },
   pillOk: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.successLight,
-    borderWidth: 1,
-    borderColor: Colors.success + '28',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
+    gap: 8,
+    backgroundColor: '#E8FBF0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
   },
   pillTextOk: {
-    fontSize: 11,
-    fontFamily: Font.medium,
-    color: Colors.success,
+    fontSize: 13,
+    fontFamily: Font.bold,
+    color: '#22C55E',
   },
-
-  // CTA
   cta: {
-    flexDirection: 'row',
+    backgroundColor: '#EF4444',
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 7,
-    backgroundColor: Colors.danger,
-    paddingVertical: 13,
-    borderRadius: 12,
+    width: '100%',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   ctaText: {
-    flex: 1,
-    color: '#fff',
-    fontFamily: Font.semibold,
-    fontSize: 15,
-    letterSpacing: 0.1,
+    color: '#FFFFFF',
+    fontFamily: Font.bold,
+    fontSize: 16,
+    letterSpacing: 0.5,
   },
 });
