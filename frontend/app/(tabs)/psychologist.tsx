@@ -16,6 +16,18 @@ import type { PatientSummary, Alert as ApiAlert } from '../../types/api';
 import { Colors } from '../../constants/colors';
 import { Font } from '../../constants/typography';
 import { PatientRow } from '../../components/PatientRow';
+import { LinearGradient } from 'expo-linear-gradient';
+
+function severityLabel(s: string): string {
+  const v = s.toLowerCase();
+  if (v === 'high' || v === 'severe') return 'SEVERE';
+  if (v === 'moderate') return 'MODERATE';
+  return 'MILD';
+}
+function isHighSeverity(s: string): boolean {
+  const v = s.toLowerCase();
+  return v === 'high' || v === 'severe';
+}
 
 export default function PsychologistScreen() {
   const insets = useSafeAreaInsets();
@@ -61,7 +73,7 @@ export default function PsychologistScreen() {
   return (
     <ScrollView
       style={styles.root}
-      contentContainerStyle={{ paddingBottom: 40, paddingTop: insets.top + 12 }}
+      contentContainerStyle={{ paddingBottom: 40, paddingTop: insets.top + 24 }}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -72,40 +84,67 @@ export default function PsychologistScreen() {
       }
     >
       <View style={styles.pad}>
-        <Text style={styles.title}>Patients</Text>
-        <Text style={styles.sub}>Highest WCS first · {patients.length} on roster</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>Patients</Text>
+          <Text style={styles.sub}>Highest WCS first · {patients.length} on roster</Text>
+        </View>
 
         <Text style={styles.section}>Open alerts</Text>
         {unacked.length === 0 ? (
-          <Text style={styles.muted}>None.</Text>
+          <View style={styles.emptyAlerts}>
+            <Text style={styles.muted}>None.</Text>
+          </View>
         ) : (
-          unacked.map((a) => (
-            <View key={a.id} style={styles.alertCard}>
-              <View style={styles.alertTop}>
-                <Text style={styles.patientName}>{a.patient_name}</Text>
-                <View style={styles.sev}>
-                  <Text style={styles.sevText}>{a.severity}</Text>
-                </View>
+          <View style={styles.alertsList}>
+            {unacked.map((a) => (
+              <View key={a.id} style={styles.alertCardContainer}>
+                <LinearGradient
+                  colors={[Colors.border, Colors.border]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.gradientBorder}
+                >
+                  <View style={styles.alertCard}>
+                    <View style={styles.alertTop}>
+                      <Text style={styles.patientName}>{a.patient_name}</Text>
+                      <View style={[styles.sev, isHighSeverity(a.severity) ? styles.sevHigh : styles.sevMedium]}>
+                        <Text style={[styles.sevText, isHighSeverity(a.severity) ? styles.sevTextHigh : styles.sevTextMedium]}>
+                          {severityLabel(a.severity)}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.summary}>{a.summary}</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Notes (optional)"
+                      placeholderTextColor={Colors.textSubtle}
+                      value={notes[a.id] ?? ''}
+                      onChangeText={(t) => setNotes((n) => ({ ...n, [a.id]: t }))}
+                      multiline
+                    />
+                    <Pressable onPress={() => void ack(a.id)} style={styles.ackBtnWrapper}>
+                      <LinearGradient
+                        colors={[Colors.accent, '#2A46B8']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.ackBtn}
+                      >
+                        <Text style={styles.ackText}>Acknowledge</Text>
+                      </LinearGradient>
+                    </Pressable>
+                  </View>
+                </LinearGradient>
               </View>
-              <Text style={styles.summary}>{a.summary}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Notes (optional)"
-                placeholderTextColor={Colors.textMuted}
-                value={notes[a.id] ?? ''}
-                onChangeText={(t) => setNotes((n) => ({ ...n, [a.id]: t }))}
-              />
-              <Pressable style={styles.ackBtn} onPress={() => void ack(a.id)}>
-                <Text style={styles.ackText}>Acknowledge</Text>
-              </Pressable>
-            </View>
-          ))
+            ))}
+          </View>
         )}
 
-        <Text style={[styles.section, { marginTop: 20 }]}>Patients</Text>
-        {patients.map((p) => (
-          <PatientRow key={p.id} patient={p} />
-        ))}
+        <Text style={[styles.section, { marginTop: 32 }]}>Patients</Text>
+        <View style={styles.patientsList}>
+          {patients.map((p) => (
+            <PatientRow key={p.id} patient={p} />
+          ))}
+        </View>
       </View>
     </ScrollView>
   );
@@ -113,44 +152,76 @@ export default function PsychologistScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
-  pad: { paddingHorizontal: 16 },
-  title: { fontSize: 26, fontFamily: Font.bold, color: Colors.text, letterSpacing: -0.4 },
-  sub: { fontSize: 14, fontFamily: Font.regular, color: Colors.textMuted, marginBottom: 12, lineHeight: 20 },
-  section: { fontSize: 15, fontFamily: Font.semibold, color: Colors.text, marginBottom: 8, letterSpacing: 0.1 },
-  muted: { fontSize: 14, fontFamily: Font.regular, color: Colors.textMuted, marginBottom: 12 },
+  pad: { paddingHorizontal: 20 },
+  header: { marginBottom: 32 },
+  title: { fontSize: 30, fontFamily: Font.bold, color: Colors.text, letterSpacing: -0.8, marginBottom: 6 },
+  sub: { fontSize: 15, fontFamily: Font.medium, color: Colors.textMuted, letterSpacing: 0.2 },
+  section: { fontSize: 18, fontFamily: Font.bold, color: Colors.text, marginBottom: 16, letterSpacing: -0.2 },
+  emptyAlerts: {
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderStyle: 'dashed',
+  },
+  muted: { fontSize: 15, fontFamily: Font.medium, color: Colors.textSubtle, textAlign: 'center' },
+  alertsList: { gap: 16 },
+  alertCardContainer: {
+    borderRadius: 16,
+    shadowColor: '#3B5DE7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  gradientBorder: {
+    borderRadius: 16,
+    padding: 1,
+  },
   alertCard: {
-    backgroundColor: Colors.card,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.danger,
+  },
+  alertTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  patientName: { fontSize: 18, fontFamily: Font.bold, color: Colors.text, letterSpacing: -0.3 },
+  sev: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  sevHigh: { backgroundColor: 'rgba(239, 68, 68, 0.1)' },
+  sevMedium: { backgroundColor: 'rgba(245, 158, 11, 0.1)' },
+  sevText: { fontSize: 12, fontFamily: Font.bold, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sevTextHigh: { color: Colors.danger },
+  sevTextMedium: { color: Colors.warning },
+  summary: { fontSize: 15, fontFamily: Font.regular, color: Colors.textMuted, marginBottom: 16, lineHeight: 22 },
+  input: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: Colors.border,
     borderRadius: 12,
     padding: 14,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: 12,
-  },
-  alertTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  patientName: { fontSize: 16, fontFamily: Font.bold, color: Colors.text, letterSpacing: -0.2 },
-  sev: {
-    backgroundColor: Colors.dangerLight,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  sevText: { fontSize: 11, fontFamily: Font.bold, color: Colors.danger, textTransform: 'uppercase' },
-  summary: { fontSize: 14, fontFamily: Font.regular, color: Colors.textMuted, marginTop: 8, marginBottom: 8, lineHeight: 20 },
-  input: {
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 8,
+    marginBottom: 16,
     color: Colors.text,
     fontFamily: Font.regular,
-    fontSize: 14,
+    fontSize: 15,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  ackBtnWrapper: {
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   ackBtn: {
-    backgroundColor: Colors.accent,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 14,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  ackText: { color: '#fff', fontFamily: Font.semibold, fontSize: 15 },
+  ackText: { color: '#FFFFFF', fontFamily: Font.bold, fontSize: 15, letterSpacing: 0.2 },
+  patientsList: { gap: 12 },
 });
