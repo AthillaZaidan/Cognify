@@ -57,67 +57,76 @@ export default function DigitalHabitsScreen() {
   return (
     <ScrollView
       style={styles.root}
-      contentContainerStyle={{ paddingBottom: 32, paddingTop: insets.top + 12 }}
+      contentContainerStyle={{ paddingBottom: 40, paddingTop: insets.top + 20 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} colors={[Colors.accent]} />}
     >
       <View style={styles.pad}>
-        <Text style={styles.title}>My Digital Habits</Text>
-        <Text style={styles.sub}>How you use your phone — screen time, focus, and switching patterns</Text>
-
-        <Text style={styles.cardTitle}>Screen Time This Week</Text>
-        <View style={styles.card}>
-          <BarChartWeekly rows={rows} unit="h" />
+        <View style={styles.header}>
+          <Text style={styles.title}>Digital Habits</Text>
+          <Text style={styles.sub}>Screen time, focus, and switching patterns</Text>
         </View>
 
-        <Text style={styles.cardTitle}>Metrics</Text>
-        <View style={styles.grid}>
-          <MetricCard
-            label="App Switching"
-            value={switches.toFixed(1)}
-            baseline="Your usual: 6.0/hr"
-            status={switchStatus}
-          />
-          <MetricCard
-            label="Focus Time"
-            value={`${sessMin}m`}
-            baseline="Your usual: 2.0m"
-            status={sessionStatus}
-          />
-          <MetricCard
-            label="Focus Rhythm"
-            value={frag.toFixed(2)}
-            baseline="Your usual: 0.35"
-            status={fragStatus}
-          />
-          <MetricCard
-            label="Reply Speed"
-            value={`${notif}s`}
-            baseline="For context"
-            status="Info"
-          />
-        </View>
-
-        <Text style={styles.cardTitle}>Estimated Activity Pattern</Text>
-        <View style={styles.card}>
-          <View style={styles.patternHead}>
-            <Text style={styles.patternNote}>Time-of-day heuristic (demo)</Text>
-            <Feather name="info" size={16} color={Colors.textMuted} />
+        <View style={styles.section}>
+          <Text style={styles.cardTitle}>Screen Time This Week</Text>
+          <View style={styles.card}>
+            <BarChartWeekly rows={rows} unit="h" />
           </View>
-          {[
-            { n: 'Morning Routine', pct: 20, range: '6–9' },
-            { n: 'Work/Productivity', pct: 45, range: '9–17' },
-            { n: 'Evening Mixed', pct: 20, range: '17–20' },
-            { n: 'Late Night', pct: 15, range: '20–24' },
-          ].map((b) => (
-            <View key={b.n} style={styles.stackRow}>
-              <Text style={styles.stackLabel}>
-                {b.n} {b.pct}% ({b.range})
-              </Text>
-              <View style={styles.stackTrack}>
-                <View style={[styles.stackFill, { width: `${b.pct}%`, backgroundColor: Colors.accent }]} />
-              </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.cardTitle}>Metrics</Text>
+          <View style={styles.grid}>
+            <MetricCard
+              label="App Switching"
+              value={switches.toFixed(1)}
+              baseline="Your usual: 6.0/hr"
+              status={switchStatus}
+            />
+            <MetricCard
+              label="Focus Time"
+              value={`${sessMin}m`}
+              baseline="Your usual: 2.0m"
+              status={sessionStatus}
+            />
+            <MetricCard
+              label="Focus Rhythm"
+              value={frag.toFixed(2)}
+              baseline="Your usual: 0.35"
+              status={fragStatus}
+            />
+            <MetricCard
+              label="Reply Speed"
+              value={`${notif}s`}
+              baseline="For context"
+              status="Info"
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.cardTitle}>Estimated Activity Pattern</Text>
+          <View style={styles.card}>
+            <View style={styles.patternHead}>
+              <Text style={styles.patternNote}>Time-of-day heuristic (demo)</Text>
+              <Feather name="info" size={16} color={Colors.textMuted} />
             </View>
-          ))}
+            {[
+              { n: 'Morning Routine', pct: 20, range: '6–9', opacity: 0.4 },
+              { n: 'Work/Productivity', pct: 45, range: '9–17', opacity: 1.0 },
+              { n: 'Evening Mixed', pct: 20, range: '17–20', opacity: 0.6 },
+              { n: 'Late Night', pct: 15, range: '20–24', opacity: 0.2 },
+            ].map((b) => (
+              <View key={b.n} style={styles.stackRow}>
+                <View style={styles.stackLabelRow}>
+                  <Text style={styles.stackLabel}>{b.n}</Text>
+                  <Text style={styles.stackValue}>{b.pct}% <Text style={styles.stackRange}>({b.range})</Text></Text>
+                </View>
+                <View style={styles.stackTrack}>
+                  <View style={[styles.stackFill, { width: `${b.pct}%`, backgroundColor: Colors.accent, opacity: b.opacity }]} />
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
       </View>
     </ScrollView>
@@ -126,23 +135,32 @@ export default function DigitalHabitsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
-  pad: { paddingHorizontal: 16 },
-  title: { fontSize: 26, fontFamily: Font.bold, color: Colors.text, letterSpacing: -0.4 },
-  sub: { fontSize: 14, fontFamily: Font.regular, color: Colors.textMuted, marginBottom: 16, lineHeight: 20 },
-  cardTitle: { fontSize: 15, fontFamily: Font.semibold, color: Colors.text, marginTop: 12, marginBottom: 8, letterSpacing: 0.1 },
+  pad: { paddingHorizontal: 20 },
+  header: { marginBottom: 24 },
+  title: { fontSize: 30, fontFamily: Font.bold, color: Colors.text, letterSpacing: -0.8, marginBottom: 4 },
+  sub: { fontSize: 15, fontFamily: Font.regular, color: Colors.textMuted, lineHeight: 22 },
+  section: { marginBottom: 24 },
+  cardTitle: { fontSize: 13, fontFamily: Font.bold, color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 },
   card: {
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
     borderColor: Colors.border,
-    marginBottom: 8,
+    shadowColor: '#3B5DE7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  patternHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  patternNote: { fontSize: 12, fontFamily: Font.regular, color: Colors.textMuted },
-  stackRow: { marginBottom: 10 },
-  stackLabel: { fontSize: 13, fontFamily: Font.regular, color: Colors.text, marginBottom: 4 },
-  stackTrack: { height: 8, backgroundColor: Colors.border, borderRadius: 4, overflow: 'hidden' },
-  stackFill: { height: '100%', borderRadius: 4 },
+  patternHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  patternNote: { fontSize: 13, fontFamily: Font.medium, color: Colors.textMuted },
+  stackRow: { marginBottom: 16 },
+  stackLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 },
+  stackLabel: { fontSize: 14, fontFamily: Font.semibold, color: Colors.text },
+  stackValue: { fontSize: 14, fontFamily: Font.bold, color: Colors.text },
+  stackRange: { fontSize: 12, fontFamily: Font.regular, color: Colors.textSubtle },
+  stackTrack: { height: 6, backgroundColor: Colors.border, borderRadius: 3, overflow: 'hidden' },
+  stackFill: { height: '100%', borderRadius: 3 },
 });
