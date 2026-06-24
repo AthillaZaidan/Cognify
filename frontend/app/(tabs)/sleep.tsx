@@ -56,77 +56,106 @@ export default function SleepScreen() {
   return (
     <ScrollView
       style={styles.root}
-      contentContainerStyle={{ paddingBottom: 32, paddingTop: insets.top + 12 }}
+      contentContainerStyle={{ paddingBottom: 40, paddingTop: insets.top + 20 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} colors={[Colors.accent]} />}
     >
       <View style={styles.pad}>
-        <Text style={styles.title}>Sleep</Text>
-        <Text style={styles.sub}>Duration, mean schedule, last 7 nights</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>Sleep</Text>
+          <Text style={styles.sub}>Duration, schedule, last 7 nights</Text>
+        </View>
 
-        <TrendChart
-          title="Sleep Duration (7 days)"
-          labels={labels}
-          values={hours}
-          ySuffix="h"
-          referenceLine={BASELINE_SLEEP_H}
-        />
+        <View style={styles.section}>
+          <TrendChart
+            title="Sleep Duration (7 days)"
+            labels={labels}
+            values={hours}
+            ySuffix="h"
+            referenceLine={BASELINE_SLEEP_H}
+          />
+        </View>
 
-        <View style={styles.card}>
+        <View style={styles.section}>
           <Text style={styles.cardTitle}>Sleep Schedule</Text>
-          <View style={styles.row}>
-            <Feather name="clock" size={18} color={Colors.accent} />
-            <Text style={styles.rowText}>
-              Average Bedtime: {onsetHours.length ? formatHourToClock(avgOnset) : '—'}
-            </Text>
-          </View>
-          <View style={styles.row}>
-            <Feather name="sunrise" size={18} color={Colors.accent} />
-            <Text style={styles.rowText}>
-              Average Wake: {wakeHours.length ? formatHourToClock(avgWake) : '—'}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.insightRow}>
-          <View style={styles.insight}>
-            <Text style={styles.insightLabel}>Weekly average</Text>
-            <Text style={styles.insightVal}>{avgSleepH.toFixed(1)}h</Text>
-            <Text style={styles.insightSub}>vs {BASELINE_SLEEP_H}h baseline</Text>
-          </View>
-          <View style={styles.insight}>
-            <Text style={styles.insightLabel}>Worst night</Text>
-            <Text style={styles.insightVal}>
-              {worst ? `${(worst.sleep_duration_min / 60).toFixed(1)}h` : '—'}
-            </Text>
-            <Text style={styles.insightSub}>{worst?.date ?? ''}</Text>
-          </View>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Sleep consistency</Text>
-          <Text style={styles.body}>{consistency} (σ ≈ {(durStd / 60).toFixed(2)}h)</Text>
-        </View>
-
-        <Text style={styles.cardTitle}>Recent Nights</Text>
-        {trends.map((d) => {
-          const mins = d.sleep_duration_min;
-          const color =
-            mins >= 360 ? Colors.success : mins >= 300 ? Colors.warning : Colors.danger;
-          const pct = Math.min(100, (mins / 540) * 100);
-          return (
-            <View key={d.date} style={styles.nightRow}>
-              <Text style={styles.nightDate}>{d.date}</Text>
-              <View style={styles.nightBar}>
-                <View style={[styles.nightFill, { width: `${pct}%`, backgroundColor: color }]} />
+          <View style={styles.card}>
+            <View style={styles.row}>
+              <View style={styles.iconBox}>
+                <Feather name="moon" size={18} color={Colors.accent} />
               </View>
-              <Text style={styles.nightMeta}>
-                {(mins / 60).toFixed(1)}h ·{' '}
-                {d.sleep_onset_hour != null ? formatHourToClock(d.sleep_onset_hour) : '—'} →{' '}
-                {d.wake_hour != null ? formatHourToClock(d.wake_hour) : '—'}
-              </Text>
+              <View>
+                <Text style={styles.rowLabel}>Average Bedtime</Text>
+                <Text style={styles.rowText}>
+                  {onsetHours.length ? formatHourToClock(avgOnset) : '—'}
+                </Text>
+              </View>
             </View>
-          );
-        })}
+            <View style={styles.divider} />
+            <View style={styles.row}>
+              <View style={styles.iconBox}>
+                <Feather name="sunrise" size={18} color={Colors.accent} />
+              </View>
+              <View>
+                <Text style={styles.rowLabel}>Average Wake</Text>
+                <Text style={styles.rowText}>
+                  {wakeHours.length ? formatHourToClock(avgWake) : '—'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.insightRow}>
+            <View style={styles.insight}>
+              <Text style={styles.insightLabel}>Weekly average</Text>
+              <Text style={styles.insightVal}>{avgSleepH.toFixed(1)}<Text style={styles.insightUnit}>h</Text></Text>
+              <Text style={styles.insightSub}>vs {BASELINE_SLEEP_H}h baseline</Text>
+            </View>
+            <View style={styles.insight}>
+              <Text style={styles.insightLabel}>Worst night</Text>
+              <Text style={styles.insightVal}>
+                {worst ? (worst.sleep_duration_min / 60).toFixed(1) : '—'}<Text style={styles.insightUnit}>{worst ? 'h' : ''}</Text>
+              </Text>
+              <Text style={styles.insightSub}>{worst?.date ?? 'No data'}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.cardTitle}>Sleep consistency</Text>
+          <View style={styles.card}>
+            <Text style={styles.body}>{consistency} <Text style={styles.sigma}>(σ ≈ {(durStd / 60).toFixed(2)}h)</Text></Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.cardTitle}>Recent Nights</Text>
+          <View style={styles.card}>
+            {trends.map((d, i) => {
+              const mins = d.sleep_duration_min;
+              const color =
+                mins >= 360 ? Colors.success : mins >= 300 ? Colors.warning : Colors.danger;
+              const pct = Math.min(100, (mins / 540) * 100);
+              return (
+                <View key={d.date} style={[styles.nightRow, i === trends.length - 1 && { marginBottom: 0 }]}>
+                  <View style={styles.nightHeader}>
+                    <Text style={styles.nightDate}>{d.date}</Text>
+                    <Text style={styles.nightMeta}>
+                      {d.sleep_onset_hour != null ? formatHourToClock(d.sleep_onset_hour) : '—'} →{' '}
+                      {d.wake_hour != null ? formatHourToClock(d.wake_hour) : '—'}
+                    </Text>
+                  </View>
+                  <View style={styles.nightBar}>
+                    <View style={[styles.nightFill, { width: `${pct}%`, backgroundColor: color }]} />
+                  </View>
+                  <Text style={[styles.nightDuration, { color }]}>
+                    {(mins / 60).toFixed(1)}h
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
       </View>
     </ScrollView>
   );
@@ -134,42 +163,60 @@ export default function SleepScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
-  pad: { paddingHorizontal: 16 },
-  title: { fontSize: 26, fontFamily: Font.bold, color: Colors.text, letterSpacing: -0.4 },
-  sub: { fontSize: 14, fontFamily: Font.regular, color: Colors.textMuted, marginBottom: 16, lineHeight: 20 },
+  pad: { paddingHorizontal: 20 },
+  header: { marginBottom: 24 },
+  title: { fontSize: 30, fontFamily: Font.bold, color: Colors.text, letterSpacing: -0.8, marginBottom: 4 },
+  sub: { fontSize: 15, fontFamily: Font.regular, color: Colors.textMuted, lineHeight: 22 },
+  section: { marginBottom: 24 },
+  cardTitle: { fontSize: 13, fontFamily: Font.bold, color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 },
   card: {
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
     borderColor: Colors.border,
-    marginBottom: 12,
+    shadowColor: '#3B5DE7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  cardTitle: { fontSize: 15, fontFamily: Font.semibold, marginBottom: 8, color: Colors.text },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  rowText: { fontSize: 15, color: Colors.text },
-  insightRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  iconBox: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(59, 93, 231, 0.1)', alignItems: 'center', justifyContent: 'center' },
+  rowLabel: { fontSize: 13, fontFamily: Font.medium, color: Colors.textMuted, marginBottom: 2 },
+  rowText: { fontSize: 18, fontFamily: Font.bold, color: Colors.text },
+  divider: { height: 1, backgroundColor: Colors.border, marginVertical: 16 },
+  insightRow: { flexDirection: 'row', gap: 12 },
   insight: {
     flex: 1,
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
     borderColor: Colors.border,
+    shadowColor: '#3B5DE7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  insightLabel: { fontSize: 12, fontFamily: Font.medium, color: Colors.textMuted },
-  insightVal: { fontSize: 20, fontFamily: Font.extrabold, color: Colors.text, marginTop: 4 },
-  insightSub: { fontSize: 11, fontFamily: Font.regular, color: Colors.textMuted, marginTop: 4 },
-  body: { fontSize: 14, fontFamily: Font.regular, color: Colors.text },
-  nightRow: { marginBottom: 14 },
-  nightDate: { fontSize: 13, fontFamily: Font.semibold, color: Colors.text, marginBottom: 4 },
+  insightLabel: { fontSize: 13, fontFamily: Font.medium, color: Colors.textMuted, marginBottom: 8 },
+  insightVal: { fontSize: 32, fontFamily: Font.extrabold, color: Colors.text, letterSpacing: -1 },
+  insightUnit: { fontSize: 18, fontFamily: Font.bold, color: Colors.textMuted },
+  insightSub: { fontSize: 12, fontFamily: Font.regular, color: Colors.textSubtle, marginTop: 8 },
+  body: { fontSize: 18, fontFamily: Font.semibold, color: Colors.text },
+  sigma: { fontSize: 14, fontFamily: Font.regular, color: Colors.textMuted },
+  nightRow: { marginBottom: 20 },
+  nightHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 },
+  nightDate: { fontSize: 14, fontFamily: Font.semibold, color: Colors.text },
+  nightMeta: { fontSize: 13, fontFamily: Font.medium, color: Colors.textSubtle },
   nightBar: {
-    height: 8,
+    height: 6,
     backgroundColor: Colors.border,
-    borderRadius: 4,
+    borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  nightFill: { height: '100%', borderRadius: 4 },
-  nightMeta: { fontSize: 12, fontFamily: Font.regular, color: Colors.textMuted },
+  nightFill: { height: '100%', borderRadius: 3 },
+  nightDuration: { fontSize: 13, fontFamily: Font.bold, textAlign: 'right' },
 });
